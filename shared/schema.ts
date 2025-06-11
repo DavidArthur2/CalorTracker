@@ -97,7 +97,7 @@ export const aiSuggestions = pgTable("ai_suggestions", {
 
 export const dailyMealPlans = pgTable("daily_meal_plans", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   date: text("date").notNull(),
   mealType: text("meal_type").$type<"breakfast" | "lunch" | "dinner" | "snack">().notNull(),
   title: text("title").notNull(),

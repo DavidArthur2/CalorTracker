@@ -18,35 +18,36 @@ import { generateDailyMealPlans } from "./openai";
 // This is the IStorage interface your application depends on.
 // We will implement this with a PostgreSQL backend.
 export interface IStorage {
-  // User operations (Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  // User operations (Email/Password Auth)
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: { email: string; password: string; firstName?: string; lastName?: string }): Promise<User>;
   
   // User preferences
-  getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
+  getUserPreferences(userId: number): Promise<UserPreferences | undefined>;
   createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
-  updateUserPreferences(userId: string, preferences: Partial<InsertUserPreferences>): Promise<UserPreferences>;
+  updateUserPreferences(userId: number, preferences: Partial<InsertUserPreferences>): Promise<UserPreferences>;
   
   // Calorie goals
-  getCalorieGoal(userId: string, date: string): Promise<CalorieGoal | undefined>;
+  getCalorieGoal(userId: number, date: string): Promise<CalorieGoal | undefined>;
   setCalorieGoal(goal: InsertCalorieGoal): Promise<CalorieGoal>;
-  updateCalorieGoal(userId: string, date: string, goal: Partial<InsertCalorieGoal>): Promise<CalorieGoal>;
+  updateCalorieGoal(userId: number, date: string, goal: Partial<InsertCalorieGoal>): Promise<CalorieGoal>;
   
   // Food entries
-  getFoodEntriesForDate(userId: string, date: string): Promise<FoodEntry[]>;
+  getFoodEntriesForDate(userId: number, date: string): Promise<FoodEntry[]>;
   createFoodEntry(entry: InsertFoodEntry): Promise<FoodEntry>;
   getFoodEntry(id: number): Promise<FoodEntry | undefined>;
   deleteFoodEntry(id: number): Promise<void>;
   
   // AI suggestions
-  getAiSuggestionsForDate(userId: string, date: string): Promise<AiSuggestion[]>;
+  getAiSuggestionsForDate(userId: number, date: string): Promise<AiSuggestion[]>;
   createAiSuggestion(suggestion: InsertAiSuggestion): Promise<AiSuggestion>;
   
   // Daily meal plans
-  getDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]>;
+  getDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]>;
   createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan>;
   updateMealPlanSelection(planId: number, isSelected: boolean): Promise<DailyMealPlan>;
-  generateDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]>;
+  generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]>;
 }
 
 // Ensure the DATABASE_URL is available
@@ -63,22 +64,25 @@ export const db = drizzle(client, { schema });
  * PostgreSQL implementation of the IStorage interface using Drizzle ORM.
  */
 export class PgStorage implements IStorage {
-  // User operations for Replit Auth
-  async getUser(id: string): Promise<User | undefined> {
+  // User operations for Email/Password Auth
+  async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: { email: string; password: string; firstName?: string; lastName?: string }): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
+      .values({
+        email: userData.email,
+        password: userData.password,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
       })
       .returning();
     return user;
