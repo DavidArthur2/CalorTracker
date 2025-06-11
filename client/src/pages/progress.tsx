@@ -35,9 +35,9 @@ export default function Progress() {
   });
 
   // Calculate progress metrics (simplified demo data)
-  const entriesArray = Array.isArray(recentEntries) ? recentEntries : [];
+  const entriesArray: any[] = Array.isArray(recentEntries) ? recentEntries : [];
   const totalCaloriesToday = entriesArray.reduce((sum: number, entry: any) => sum + (entry?.calories || 0), 0);
-  const goalCalories = todayGoal?.calories || 2000;
+  const goalCalories = (todayGoal as any)?.calories || 2000;
   const weeklyAverage = Math.round(totalCaloriesToday * 0.9); // Simplified calculation
   
   const progressMetrics = {

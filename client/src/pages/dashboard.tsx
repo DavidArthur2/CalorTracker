@@ -40,12 +40,17 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const foodEntriesArray = Array.isArray(foodEntries) ? foodEntries : [];
-  const aiSuggestionsArray = Array.isArray(aiSuggestions) ? aiSuggestions : [];
+  const foodEntriesArray: any[] = Array.isArray(foodEntries) ? foodEntries : [];
+  const aiSuggestionsArray: any[] = Array.isArray(aiSuggestions) ? aiSuggestions : [];
   
   const totalCalories = foodEntriesArray.reduce((sum: number, entry: any) => sum + (entry?.calories || 0), 0);
-  const goalData = calorieGoal || { calories: 2000, protein: 150, carbs: 200, fat: 70 };
-  const remainingCalories = goalData.calories - totalCalories;
+  const goalData = {
+    calories: (calorieGoal as any)?.calories || 2000,
+    protein: (calorieGoal as any)?.protein || 150,
+    carbs: (calorieGoal as any)?.carbs || 200,
+    fat: (calorieGoal as any)?.fat || 70,
+  };
+  const remainingCalories = Number(goalData.calories) - totalCalories;
   const isTrialExpiring = mockUser.subscriptionStatus === "trial";
   const daysRemaining = isTrialExpiring ? 
     Math.ceil((new Date(mockUser.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
@@ -141,7 +146,7 @@ export default function Dashboard() {
           
           {/* Daily Progress Overview */}
           <DailyProgress 
-            goal={calorieGoal || { calories: 2000, protein: 150, carbs: 200, fat: 70 }}
+            goal={goalData}
             consumed={{
               calories: totalCalories,
               protein: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.protein || 0), 0),
