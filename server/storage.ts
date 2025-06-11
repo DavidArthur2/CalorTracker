@@ -91,7 +91,7 @@ export class PgStorage implements IStorage {
   }
 
   async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
-    const [created] = await db.insert(userPreferences).values(preferences).returning();
+    const [created] = await db.insert(userPreferences).values([preferences]).returning();
     return created;
   }
 

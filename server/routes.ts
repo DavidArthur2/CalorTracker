@@ -1,23 +1,32 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
-import Stripe from "stripe";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
+import sharp from "sharp";
 import { storage } from "./storage";
-import { analyzeFood, generateMealSuggestion, generateExerciseSuggestion, generateDailyMealPlans } from "./openai";
-import { insertFoodEntrySchema, insertCalorieGoalSchema, insertAiSuggestionSchema, insertDailyMealPlanSchema } from "@shared/schema";
+import { analyzeFood, generateMealSuggestion, generateExerciseSuggestion } from "./openai";
+import { insertFoodEntrySchema, insertCalorieGoalSchema, insertAiSuggestionSchema, insertDailyMealPlanSchema, insertUserPreferencesSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupSecurity } from "./security";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
-});
-
-// Configure multer for file uploads
+// Configure multer for file uploads with local storage
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, `food-${uniqueSuffix}${path.extname(file.originalname)}`);
+    }
+  }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -28,26 +37,91 @@ const upload = multer({
   }
 });
 
+// Stock meal icons data
+const STOCK_MEAL_ICONS = [
+  { id: 'salad', name: 'Salad', icon: '🥗', category: 'healthy' },
+  { id: 'burger', name: 'Burger', icon: '🍔', category: 'fast-food' },
+  { id: 'pizza', name: 'Pizza', icon: '🍕', category: 'fast-food' },
+  { id: 'sandwich', name: 'Sandwich', icon: '🥪', category: 'meal' },
+  { id: 'soup', name: 'Soup', icon: '🍲', category: 'healthy' },
+  { id: 'rice', name: 'Rice Bowl', icon: '🍚', category: 'meal' },
+  { id: 'pasta', name: 'Pasta', icon: '🍝', category: 'meal' },
+  { id: 'fish', name: 'Fish', icon: '🐟', category: 'protein' },
+  { id: 'chicken', name: 'Chicken', icon: '🍗', category: 'protein' },
+  { id: 'eggs', name: 'Eggs', icon: '🥚', category: 'protein' },
+  { id: 'fruit', name: 'Fruit', icon: '🍎', category: 'snack' },
+  { id: 'nuts', name: 'Nuts', icon: '🥜', category: 'snack' },
+  { id: 'yogurt', name: 'Yogurt', icon: '🥛', category: 'dairy' },
+  { id: 'smoothie', name: 'Smoothie', icon: '🥤', category: 'drink' },
+  { id: 'coffee', name: 'Coffee', icon: '☕', category: 'drink' },
+];
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup security middleware
+  setupSecurity(app);
   
-  // User authentication (simplified for demo)
-  app.post("/api/login", async (req, res) => {
+  // Setup Replit authentication
+  await setupAuth(app);
+  
+  // Serve uploaded images
+  app.use('/uploads', express.static(uploadsDir));
+
+  // Auth routes for Replit authentication
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const { username, password } = req.body;
-      const user = await storage.getUserByUsername(username);
-      
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
-      
-      // In a real app, you'd use proper session management
-      res.json({ user: { id: user.id, username: user.username, email: user.email, subscriptionStatus: user.subscriptionStatus, trialEndsAt: user.trialEndsAt } });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  app.post("/api/register", async (req, res) => {
+  // User preferences routes
+  app.get('/api/user/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const preferences = await storage.getUserPreferences(userId);
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching preferences:", error);
+      res.status(500).json({ message: "Failed to fetch preferences" });
+    }
+  });
+
+  app.post('/api/user/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validation = insertUserPreferencesSchema.parse({ ...req.body, userId });
+      
+      // Check if preferences exist
+      const existing = await storage.getUserPreferences(userId);
+      let preferences;
+      
+      if (existing) {
+        preferences = await storage.updateUserPreferences(userId, validation);
+      } else {
+        preferences = await storage.createUserPreferences(validation);
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      res.status(400).json({ message: "Invalid preferences data" });
+    }
+  });
+
+  // Stock meal icons endpoint
+  app.get('/api/meal-icons', (req, res) => {
+    res.json(STOCK_MEAL_ICONS);
+  });
+
+  // Manual food entry with stock icons
+  app.post('/api/food-entries/manual', isAuthenticated, async (req: any, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
       const existingUser = await storage.getUserByUsername(userData.username) || await storage.getUserByEmail(userData.email);
