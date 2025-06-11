@@ -286,11 +286,11 @@ export default function Profile() {
                   </div>
                   <div>
                     <Label>Activity Level</Label>
-                    <p className="text-foreground font-medium capitalize">{userPreferences?.activityLevel?.replace('_', ' ') || 'Not set'}</p>
+                    <p className="text-foreground font-medium capitalize">{userPreferences?.activityLevel ? userPreferences.activityLevel.replace('_', ' ') : 'Not set'}</p>
                   </div>
                   <div>
                     <Label>Health Goal</Label>
-                    <p className="text-foreground font-medium capitalize">{userPreferences?.goal?.replace('_', ' ') || 'Not set'}</p>
+                    <p className="text-foreground font-medium capitalize">{userPreferences?.goal ? userPreferences.goal.replace('_', ' ') : 'Not set'}</p>
                   </div>
                   <div className="md:col-span-2">
                     <Label>Dietary Preferences</Label>
