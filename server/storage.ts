@@ -138,7 +138,7 @@ export class PgStorage implements IStorage {
   }
 
   async createFoodEntry(entry: InsertFoodEntry): Promise<FoodEntry> {
-    const [created] = await db.insert(foodEntries).values(entry).returning();
+    const [created] = await db.insert(foodEntries).values([entry]).returning();
     return created;
   }
 
@@ -160,7 +160,7 @@ export class PgStorage implements IStorage {
   }
 
   async createAiSuggestion(suggestion: InsertAiSuggestion): Promise<AiSuggestion> {
-    const [created] = await db.insert(aiSuggestions).values(suggestion).returning();
+    const [created] = await db.insert(aiSuggestions).values([suggestion]).returning();
     return created;
   }
 
@@ -173,7 +173,7 @@ export class PgStorage implements IStorage {
   }
 
   async createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan> {
-    const [created] = await db.insert(dailyMealPlans).values(plan).returning();
+    const [created] = await db.insert(dailyMealPlans).values([plan]).returning();
     return created;
   }
 
