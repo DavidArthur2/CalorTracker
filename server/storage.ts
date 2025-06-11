@@ -103,9 +103,10 @@ export class PgStorage implements IStorage {
   async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
     const validatedPreferences = {
       ...preferences,
-      gender: preferences.gender as "male" | "female" | "other" | null
+      gender: preferences.gender as "male" | "female" | "other" | null,
+      activityLevel: preferences.activityLevel as "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extremely_active" | null
     };
-    const [newPreferences] = await db.insert(userPreferences).values([validatedPreferences]).returning();
+    const [newPreferences] = await db.insert(userPreferences).values(validatedPreferences).returning();
     return newPreferences;
   }
 
