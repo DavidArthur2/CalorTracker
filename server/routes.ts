@@ -131,11 +131,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User preferences routes
-  app.get('/api/user/preferences', requireAuth, async (req: any, res) => {
+  // User preferences routes - SECURED: Fixed endpoint path to match frontend calls
+  app.get('/api/user-preferences/:userId', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const preferences = await storage.getUserPreferences(userId);
+      const authenticatedUserId = req.user.id;
+      const requestedUserId = parseInt(req.params.userId);
+      
+      // SECURITY: Ensure user can only access their own data
+      if (authenticatedUserId !== requestedUserId) {
+        return res.status(403).json({ message: "Unauthorized access to other user's data" });
+      }
+      
+      const preferences = await storage.getUserPreferences(authenticatedUserId);
       res.json(preferences);
     } catch (error) {
       console.error("Error fetching user preferences:", error);
@@ -164,12 +171,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Calorie goals routes
-  app.get('/api/calorie-goals/:date', requireAuth, async (req: any, res) => {
+  // Calorie goals routes - SECURED: Fixed endpoint path to match frontend calls
+  app.get('/api/calorie-goal/:userId/:date', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const authenticatedUserId = req.user.id;
+      const requestedUserId = parseInt(req.params.userId);
       const { date } = req.params;
-      const goal = await storage.getCalorieGoal(userId, date);
+      
+      // SECURITY: Ensure user can only access their own data
+      if (authenticatedUserId !== requestedUserId) {
+        return res.status(403).json({ message: "Unauthorized access to other user's data" });
+      }
+      
+      const goal = await storage.getCalorieGoal(authenticatedUserId, date);
       res.json(goal);
     } catch (error) {
       console.error("Error fetching calorie goal:", error);
@@ -198,12 +212,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Food entries routes
-  app.get('/api/food-entries/:date', requireAuth, async (req: any, res) => {
+  // Food entries routes - SECURED: Fixed endpoint path to match frontend calls
+  app.get('/api/food-entries/:userId/:date', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const authenticatedUserId = req.user.id;
+      const requestedUserId = parseInt(req.params.userId);
       const { date } = req.params;
-      const entries = await storage.getFoodEntriesForDate(userId, date);
+      
+      // SECURITY: Ensure user can only access their own data
+      if (authenticatedUserId !== requestedUserId) {
+        return res.status(403).json({ message: "Unauthorized access to other user's data" });
+      }
+      
+      const entries = await storage.getFoodEntriesForDate(authenticatedUserId, date);
       res.json(entries);
     } catch (error) {
       console.error("Error fetching food entries:", error);
@@ -245,12 +266,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI suggestions routes
-  app.get('/api/ai-suggestions/:date', requireAuth, async (req: any, res) => {
+  // AI suggestions routes - SECURED: Fixed endpoint path to match frontend calls
+  app.get('/api/ai-suggestions/:userId/:date', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const authenticatedUserId = req.user.id;
+      const requestedUserId = parseInt(req.params.userId);
       const { date } = req.params;
-      const suggestions = await storage.getAiSuggestionsForDate(userId, date);
+      
+      // SECURITY: Ensure user can only access their own data
+      if (authenticatedUserId !== requestedUserId) {
+        return res.status(403).json({ message: "Unauthorized access to other user's data" });
+      }
+      
+      const suggestions = await storage.getAiSuggestionsForDate(authenticatedUserId, date);
       res.json(suggestions);
     } catch (error) {
       console.error("Error fetching AI suggestions:", error);
@@ -258,12 +286,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Daily meal plans routes
-  app.get('/api/meal-plans/:date', requireAuth, async (req: any, res) => {
+  // Daily meal plans routes - SECURED: Fixed endpoint path to match frontend calls
+  app.get('/api/daily-meal-plans/:userId/:date', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const authenticatedUserId = req.user.id;
+      const requestedUserId = parseInt(req.params.userId);
       const { date } = req.params;
-      const plans = await storage.getDailyMealPlans(userId, date);
+      
+      // SECURITY: Ensure user can only access their own data
+      if (authenticatedUserId !== requestedUserId) {
+        return res.status(403).json({ message: "Unauthorized access to other user's data" });
+      }
+      
+      const plans = await storage.getDailyMealPlans(authenticatedUserId, date);
       res.json(plans);
     } catch (error) {
       console.error("Error fetching meal plans:", error);
@@ -285,8 +320,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/meal-plans/:id/selection', requireAuth, async (req: any, res) => {
     try {
+      const authenticatedUserId = req.user.id;
       const planId = parseInt(req.params.id);
       const { isSelected } = req.body;
+      
+      // SECURITY: Verify user owns the meal plan before updating
+      const existingPlan = await storage.getDailyMealPlans(authenticatedUserId, new Date().toISOString().split('T')[0]);
+      const planExists = existingPlan.some(p => p.id === planId);
+      
+      if (!planExists) {
+        return res.status(403).json({ message: "Unauthorized access to meal plan" });
+      }
+      
       const plan = await storage.updateMealPlanSelection(planId, isSelected);
       res.json(plan);
     } catch (error) {

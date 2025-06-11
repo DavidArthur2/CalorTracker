@@ -105,7 +105,7 @@ export class PgStorage implements IStorage {
       ...preferences,
       gender: preferences.gender as "male" | "female" | "other" | null
     };
-    const [newPreferences] = await db.insert(userPreferences).values(validatedPreferences).returning();
+    const [newPreferences] = await db.insert(userPreferences).values([validatedPreferences]).returning();
     return newPreferences;
   }
 
