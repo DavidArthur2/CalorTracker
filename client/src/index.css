@@ -96,7 +96,7 @@
 }
 
 .sidebar-nav-item.active {
-  @apply text-primary bg-primary/10;
+  @apply text-primary bg-muted;
 }
 
 /* Main content area */

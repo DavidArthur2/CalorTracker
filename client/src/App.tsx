@@ -7,6 +7,9 @@ import { ThemeProvider } from "next-themes";
 import Dashboard from "@/pages/dashboard";
 import FoodScanner from "@/pages/food-scanner";
 import Subscription from "@/pages/subscription";
+import CalendarPlanning from "@/pages/calendar-planning";
+import Progress from "@/pages/progress";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +18,9 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/scanner" component={FoodScanner} />
       <Route path="/subscription" component={Subscription} />
+      <Route path="/plan" component={CalendarPlanning} />
+      <Route path="/progress" component={Progress} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

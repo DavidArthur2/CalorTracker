@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import Navigation from "@/components/navigation";
 import DailyProgress from "@/components/daily-progress";
 import MealsTimeline from "@/components/meals-timeline";
@@ -7,8 +8,9 @@ import AiSuggestions from "@/components/ai-suggestions";
 import FoodScannerModal from "@/components/food-scanner-modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Plus, Crown, Bell } from "lucide-react";
+import { Camera, Plus, Crown, Bell, Lightbulb, Activity } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock user for demo (in real app, this would come from authentication)
 const mockUser = {
@@ -35,11 +37,71 @@ export default function Dashboard() {
     queryKey: [`/api/ai-suggestions/${mockUser.id}/${currentDate}`],
   });
 
-  const totalCalories = foodEntries.reduce((sum: number, entry: any) => sum + entry.calories, 0);
-  const remainingCalories = (calorieGoal?.calories || 2000) - totalCalories;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const foodEntriesArray = Array.isArray(foodEntries) ? foodEntries : [];
+  const aiSuggestionsArray = Array.isArray(aiSuggestions) ? aiSuggestions : [];
+  
+  const totalCalories = foodEntriesArray.reduce((sum: number, entry: any) => sum + (entry?.calories || 0), 0);
+  const goalData = calorieGoal || { calories: 2000, protein: 150, carbs: 200, fat: 70 };
+  const remainingCalories = goalData.calories - totalCalories;
   const isTrialExpiring = mockUser.subscriptionStatus === "trial";
   const daysRemaining = isTrialExpiring ? 
     Math.ceil((new Date(mockUser.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+
+  const getMealSuggestionMutation = useMutation({
+    mutationFn: async () => {
+      const currentTime = new Date().toTimeString().slice(0, 5);
+      const response = await apiRequest('POST', '/api/meal-suggestion', {
+        userId: mockUser.id,
+        date: currentDate,
+        remainingCalories,
+        currentTime,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/ai-suggestions/${mockUser.id}/${currentDate}`] });
+      toast({
+        title: "AI suggestion generated!",
+        description: "Check your new meal recommendation.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to get suggestion",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const getExerciseSuggestionMutation = useMutation({
+    mutationFn: async () => {
+      const excessCalories = Math.abs(remainingCalories);
+      const response = await apiRequest('POST', '/api/exercise-suggestion', {
+        userId: mockUser.id,
+        date: currentDate,
+        excessCalories,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/ai-suggestions/${mockUser.id}/${currentDate}`] });
+      toast({
+        title: "Exercise suggestion generated!",
+        description: "Check your new workout recommendation.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to get exercise suggestion",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background">
@@ -82,15 +144,43 @@ export default function Dashboard() {
             goal={calorieGoal || { calories: 2000, protein: 150, carbs: 200, fat: 70 }}
             consumed={{
               calories: totalCalories,
-              protein: foodEntries.reduce((sum: number, entry: any) => sum + parseFloat(entry.protein || 0), 0),
-              carbs: foodEntries.reduce((sum: number, entry: any) => sum + parseFloat(entry.carbs || 0), 0),
-              fat: foodEntries.reduce((sum: number, entry: any) => sum + parseFloat(entry.fat || 0), 0),
+              protein: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.protein || 0), 0),
+              carbs: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.carbs || 0), 0),
+              fat: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.fat || 0), 0),
             }}
           />
 
           {/* AI Suggestions */}
-          {aiSuggestions.length > 0 && (
-            <AiSuggestions suggestions={aiSuggestions} />
+          {aiSuggestionsArray.length > 0 && (
+            <AiSuggestions suggestions={aiSuggestionsArray} />
+          )}
+
+          {/* AI Meal Suggestion */}
+          {remainingCalories > 100 && (
+            <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+              <CardContent className="pt-6">
+                <div className="flex items-start space-x-3">
+                  <div className="bg-blue-100 dark:bg-blue-900 rounded-full p-2">
+                    <Lightbulb className="text-blue-600 h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">AI Meal Suggestion</h3>
+                    <p className="text-blue-700 dark:text-blue-200 text-sm mb-3">
+                      You have {remainingCalories} calories remaining. Get a personalized meal suggestion based on the time of day.
+                    </p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      onClick={() => getMealSuggestionMutation.mutate()}
+                      disabled={getMealSuggestionMutation.isPending}
+                    >
+                      {getMealSuggestionMutation.isPending ? "Getting suggestion..." : "Get Meal Suggestion"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Quick Actions */}
@@ -132,7 +222,7 @@ export default function Dashboard() {
           </div>
 
           {/* Today's Meals */}
-          <MealsTimeline entries={foodEntries} userId={mockUser.id} date={currentDate} />
+          <MealsTimeline entries={foodEntriesArray} userId={mockUser.id} date={currentDate} />
 
           {/* Exercise Recommendations (shown when calories exceeded) */}
           {remainingCalories < -50 && (
@@ -140,15 +230,21 @@ export default function Dashboard() {
               <CardContent className="pt-6">
                 <div className="flex items-start space-x-3">
                   <div className="bg-orange-100 dark:bg-orange-900 rounded-full p-2">
-                    <Crown className="text-orange-600 h-5 w-5" />
+                    <Activity className="text-orange-600 h-5 w-5" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Burn Extra Calories</h3>
                     <p className="text-orange-700 dark:text-orange-200 text-sm mb-3">
                       You've exceeded your daily goal by {Math.abs(remainingCalories)} calories. Consider some physical activity to help balance it out.
                     </p>
-                    <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
-                      Get Exercise Suggestions
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                      onClick={() => getExerciseSuggestionMutation.mutate()}
+                      disabled={getExerciseSuggestionMutation.isPending}
+                    >
+                      {getExerciseSuggestionMutation.isPending ? "Getting suggestions..." : "Get Exercise Suggestions"}
                     </Button>
                   </div>
                 </div>
