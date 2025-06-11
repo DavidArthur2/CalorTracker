@@ -24,10 +24,11 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for email/password authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  id: serial("id").primaryKey(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -38,7 +39,7 @@ export const users = pgTable("users", {
 // User preferences table
 export const userPreferences = pgTable("user_preferences", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   age: integer("age"),
   gender: text("gender").$type<"male" | "female" | "other">(),
   height: integer("height"), // in cm
@@ -58,7 +59,7 @@ export const userPreferences = pgTable("user_preferences", {
 
 export const calorieGoals = pgTable("calorie_goals", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD format
   calories: integer("calories").notNull(),
   protein: integer("protein").notNull(),
@@ -68,7 +69,7 @@ export const calorieGoals = pgTable("calorie_goals", {
 
 export const foodEntries = pgTable("food_entries", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD format
   mealType: text("meal_type").$type<"breakfast" | "lunch" | "dinner" | "snack">().notNull(),
   description: text("description").notNull(),
@@ -86,7 +87,7 @@ export const foodEntries = pgTable("food_entries", {
 
 export const aiSuggestions = pgTable("ai_suggestions", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   date: text("date").notNull(),
   suggestionType: text("suggestion_type").$type<"meal" | "exercise" | "general">().notNull(),
   content: text("content").notNull(),
