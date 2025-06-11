@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { useLocation } from "wouter";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -27,7 +28,8 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
-  const { loginMutation, registerMutation, isLoading } = useAuth();
+  const { loginMutation, registerMutation, isLoading, user } = useAuth();
+  const [, setLocation] = useLocation();
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -47,12 +49,29 @@ export default function AuthPage() {
     },
   });
 
+  // Redirect to dashboard when user is authenticated
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+
   const onLogin = async (data: LoginFormData) => {
-    loginMutation.mutate(data);
+    loginMutation.mutate(data, {
+      onSuccess: () => {
+        loginForm.reset();
+        // Redirect will happen automatically via useEffect
+      }
+    });
   };
 
   const onRegister = async (data: RegisterFormData) => {
-    registerMutation.mutate(data);
+    registerMutation.mutate(data, {
+      onSuccess: () => {
+        registerForm.reset();
+        // Redirect will happen automatically via useEffect
+      }
+    });
   };
 
   return (

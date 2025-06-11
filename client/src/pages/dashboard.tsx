@@ -7,35 +7,32 @@ import MealsTimeline from "@/components/meals-timeline";
 import AiSuggestions from "@/components/ai-suggestions";
 import DailyMealPlans from "@/components/daily-meal-plans";
 import FoodScannerModal from "@/components/food-scanner-modal";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Plus, Crown, Bell, Lightbulb, Activity } from "lucide-react";
+import { Camera, Plus, Crown, Bell, Lightbulb, Activity, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock user for demo (in real app, this would come from authentication)
-const mockUser = {
-  id: 1,
-  username: "demo_user",
-  email: "demo@example.com",
-  subscriptionStatus: "trial" as const,
-  trialEndsAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) // 2 days from now
-};
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [showWelcome, setShowWelcome] = useState(true);
+  const { user } = useAuth();
 
   const { data: calorieGoal } = useQuery({
-    queryKey: [`/api/calorie-goal/${mockUser.id}/${currentDate}`],
+    queryKey: [`/api/calorie-goal/${user?.id}/${currentDate}`],
+    enabled: !!user?.id,
   });
 
   const { data: foodEntries = [] } = useQuery({
-    queryKey: [`/api/food-entries/${mockUser.id}/${currentDate}`],
+    queryKey: [`/api/food-entries/${user?.id}/${currentDate}`],
+    enabled: !!user?.id,
   });
 
   const { data: aiSuggestions = [] } = useQuery({
-    queryKey: [`/api/ai-suggestions/${mockUser.id}/${currentDate}`],
+    queryKey: [`/api/ai-suggestions/${user?.id}/${currentDate}`],
+    enabled: !!user?.id,
   });
 
   const { toast } = useToast();
@@ -52,9 +49,9 @@ export default function Dashboard() {
     fat: (calorieGoal as any)?.fat || 70,
   };
   const remainingCalories = Number(goalData.calories) - totalCalories;
-  const isTrialExpiring = mockUser.subscriptionStatus === "trial";
-  const daysRemaining = isTrialExpiring ? 
-    Math.ceil((new Date(mockUser.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+  // Remove trial logic for now since we don't have subscription data
+  const isTrialExpiring = false;
+  const daysRemaining = 0;
 
   const getMealSuggestionMutation = useMutation({
     mutationFn: async () => {
