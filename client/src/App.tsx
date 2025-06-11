@@ -16,6 +16,7 @@ import CalendarPlanning from "@/pages/calendar-planning";
 import Progress from "@/pages/progress";
 import Profile from "@/pages/profile";
 import AuthPage from "@/pages/auth-page";
+import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 function GuestLanding() {
@@ -103,7 +104,7 @@ function Router() {
         {() => <GuestLanding />}
       </Route>
       {!isAuthenticated ? (
-        <Route path="/" component={GuestLanding} />
+        <Route path="/" component={Landing} />
       ) : (
         <>
           <Route path="/">
