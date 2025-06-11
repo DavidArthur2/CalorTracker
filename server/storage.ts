@@ -5,220 +5,219 @@ import postgres from 'postgres';
 import { eq, and, desc, asc, sql } from 'drizzle-orm';
 import * as schema from "@shared/schema";
 import { 
-  users, calorieGoals, foodEntries, aiSuggestions, dailyMealPlans,
-  type User, type InsertUser, 
+  users, userPreferences, calorieGoals, foodEntries, aiSuggestions, dailyMealPlans,
+  type User, type UpsertUser,
+  type UserPreferences, type InsertUserPreferences,
   type CalorieGoal, type InsertCalorieGoal, 
   type FoodEntry, type InsertFoodEntry, 
   type AiSuggestion, type InsertAiSuggestion, 
   type DailyMealPlan, type InsertDailyMealPlan 
 } from "@shared/schema";
+import { generateDailyMealPlans } from "./openai";
 
 // This is the IStorage interface your application depends on.
 // We will implement this with a PostgreSQL backend.
 export interface IStorage {
-  // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUserStripeInfo(id: number, customerId: string, subscriptionId?: string): Promise<User>;
-  updateUserSubscriptionStatus(id: number, status: "trial" | "active" | "canceled" | "expired"): Promise<User>;
+  // User operations (Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
+  // User preferences
+  getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
+  createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
+  updateUserPreferences(userId: string, preferences: Partial<InsertUserPreferences>): Promise<UserPreferences>;
   
   // Calorie goals
-  getCalorieGoal(userId: number, date: string): Promise<CalorieGoal | undefined>;
+  getCalorieGoal(userId: string, date: string): Promise<CalorieGoal | undefined>;
   setCalorieGoal(goal: InsertCalorieGoal): Promise<CalorieGoal>;
-  updateCalorieGoal(userId: number, date: string, goal: Partial<InsertCalorieGoal>): Promise<CalorieGoal>;
+  updateCalorieGoal(userId: string, date: string, goal: Partial<InsertCalorieGoal>): Promise<CalorieGoal>;
   
   // Food entries
-  getFoodEntriesForDate(userId: number, date: string): Promise<FoodEntry[]>;
+  getFoodEntriesForDate(userId: string, date: string): Promise<FoodEntry[]>;
   createFoodEntry(entry: InsertFoodEntry): Promise<FoodEntry>;
   getFoodEntry(id: number): Promise<FoodEntry | undefined>;
   deleteFoodEntry(id: number): Promise<void>;
   
   // AI suggestions
-  getAiSuggestionsForDate(userId: number, date: string): Promise<AiSuggestion[]>;
+  getAiSuggestionsForDate(userId: string, date: string): Promise<AiSuggestion[]>;
   createAiSuggestion(suggestion: InsertAiSuggestion): Promise<AiSuggestion>;
   
   // Daily meal plans
-  getDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]>;
+  getDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]>;
   createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan>;
   updateMealPlanSelection(planId: number, isSelected: boolean): Promise<DailyMealPlan>;
-  generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]>;
+  generateDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]>;
 }
 
 // Ensure the DATABASE_URL is available
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required.");
+  throw new Error("DATABASE_URL environment variable is not set");
 }
 
-// Setup the database connection and Drizzle client
-const client = postgres(process.env.DATABASE_URL);
-const db = drizzle(client, { schema });
+// Create the connection
+const connectionString = process.env.DATABASE_URL;
+const client = postgres(connectionString);
+export const db = drizzle(client, { schema });
 
 /**
  * PostgreSQL implementation of the IStorage interface using Drizzle ORM.
  */
 export class PgStorage implements IStorage {
-
-  // --- User Operations ---
-
-  async getUser(id: number): Promise<User | undefined> {
-    return db.query.users.findFirst({ where: eq(users.id, id) });
+  // User operations for Replit Auth
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return db.query.users.findFirst({ where: eq(users.username, username) });
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return db.query.users.findFirst({ where: eq(users.email, email) });
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 3); // 3-day trial
-
-    const [newUser] = await db.insert(users).values({
-      ...insertUser,
-      trialEndsAt,
-    }).returning();
-    
-    if (!newUser) throw new Error("Failed to create user.");
-    return newUser;
-  }
-
-  async updateUserStripeInfo(id: number, customerId: string, subscriptionId?: string): Promise<User> {
-    const [updatedUser] = await db.update(users)
-      .set({
-        stripeCustomerId: customerId,
-        ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
       })
-      .where(eq(users.id, id))
       .returning();
-      
-    if (!updatedUser) throw new Error("User not found to update Stripe info.");
-    return updatedUser;
+    return user;
   }
 
-  async updateUserSubscriptionStatus(id: number, status: "trial" | "active" | "canceled" | "expired"): Promise<User> {
-    const [updatedUser] = await db.update(users)
-      .set({ subscriptionStatus: status })
-      .where(eq(users.id, id))
-      .returning();
-
-    if (!updatedUser) throw new Error("User not found to update subscription status.");
-    return updatedUser;
+  // User preferences
+  async getUserPreferences(userId: string): Promise<UserPreferences | undefined> {
+    const [preferences] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
+    return preferences;
   }
 
-  // --- Calorie Goal Operations ---
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const [created] = await db.insert(userPreferences).values(preferences).returning();
+    return created;
+  }
 
-  async getCalorieGoal(userId: number, date: string): Promise<CalorieGoal | undefined> {
-    return db.query.calorieGoals.findFirst({
-      where: and(eq(calorieGoals.userId, userId), eq(calorieGoals.date, date))
-    });
+  async updateUserPreferences(userId: string, preferencesUpdate: Partial<InsertUserPreferences>): Promise<UserPreferences> {
+    const [updated] = await db
+      .update(userPreferences)
+      .set({ ...preferencesUpdate, updatedAt: new Date() })
+      .where(eq(userPreferences.userId, userId))
+      .returning();
+    return updated;
+  }
+
+  // Calorie goals
+  async getCalorieGoal(userId: string, date: string): Promise<CalorieGoal | undefined> {
+    const [goal] = await db.select().from(calorieGoals)
+      .where(and(eq(calorieGoals.userId, userId), eq(calorieGoals.date, date)));
+    return goal;
   }
 
   async setCalorieGoal(goal: InsertCalorieGoal): Promise<CalorieGoal> {
-    // Upsert: insert or update if a goal for the user/date already exists
-    const [result] = await db.insert(calorieGoals)
-      .values(goal)
+    const [created] = await db.insert(calorieGoals).values(goal)
       .onConflictDoUpdate({
         target: [calorieGoals.userId, calorieGoals.date],
-        set: { calories: goal.calories, protein: goal.protein, carbs: goal.carbs, fat: goal.fat },
+        set: goal,
       })
       .returning();
-      
-    if (!result) throw new Error("Failed to set calorie goal.");
-    return result;
+    return created;
   }
-  
-  async updateCalorieGoal(userId: number, date: string, goalUpdate: Partial<InsertCalorieGoal>): Promise<CalorieGoal> {
-    const [updatedGoal] = await db.update(calorieGoals)
+
+  async updateCalorieGoal(userId: string, date: string, goalUpdate: Partial<InsertCalorieGoal>): Promise<CalorieGoal> {
+    const [updated] = await db.update(calorieGoals)
       .set(goalUpdate)
       .where(and(eq(calorieGoals.userId, userId), eq(calorieGoals.date, date)))
       .returning();
-
-    if (!updatedGoal) throw new Error("Calorie goal not found to update.");
-    return updatedGoal;
+    return updated;
   }
-  
-  // --- Food Entry Operations ---
 
-  async getFoodEntriesForDate(userId: number, date: string): Promise<FoodEntry[]> {
-    return db.query.foodEntries.findMany({
-      where: and(eq(foodEntries.userId, userId), eq(foodEntries.date, date)),
-      orderBy: [asc(foodEntries.timestamp)]
-    });
+  // Food entries
+  async getFoodEntriesForDate(userId: string, date: string): Promise<FoodEntry[]> {
+    const entries = await db.select().from(foodEntries)
+      .where(and(eq(foodEntries.userId, userId), eq(foodEntries.date, date)))
+      .orderBy(desc(foodEntries.timestamp));
+    return entries;
   }
 
   async createFoodEntry(entry: InsertFoodEntry): Promise<FoodEntry> {
-    const [newEntry] = await db.insert(foodEntries).values(entry).returning();
-    if (!newEntry) throw new Error("Failed to create food entry.");
-    return newEntry;
+    const [created] = await db.insert(foodEntries).values(entry).returning();
+    return created;
   }
 
   async getFoodEntry(id: number): Promise<FoodEntry | undefined> {
-    return db.query.foodEntries.findFirst({ where: eq(foodEntries.id, id) });
+    const [entry] = await db.select().from(foodEntries).where(eq(foodEntries.id, id));
+    return entry;
   }
 
   async deleteFoodEntry(id: number): Promise<void> {
     await db.delete(foodEntries).where(eq(foodEntries.id, id));
   }
-  
-  // --- AI Suggestion Operations ---
-  
-  async getAiSuggestionsForDate(userId: number, date: string): Promise<AiSuggestion[]> {
-    return db.query.aiSuggestions.findMany({
-      where: and(eq(aiSuggestions.userId, userId), eq(aiSuggestions.date, date)),
-      orderBy: [desc(aiSuggestions.createdAt)]
-    });
+
+  // AI suggestions
+  async getAiSuggestionsForDate(userId: string, date: string): Promise<AiSuggestion[]> {
+    const suggestions = await db.select().from(aiSuggestions)
+      .where(and(eq(aiSuggestions.userId, userId), eq(aiSuggestions.date, date)))
+      .orderBy(desc(aiSuggestions.createdAt));
+    return suggestions;
   }
 
   async createAiSuggestion(suggestion: InsertAiSuggestion): Promise<AiSuggestion> {
-    const [newSuggestion] = await db.insert(aiSuggestions).values(suggestion).returning();
-    if (!newSuggestion) throw new Error("Failed to create AI suggestion.");
-    return newSuggestion;
+    const [created] = await db.insert(aiSuggestions).values(suggestion).returning();
+    return created;
   }
 
-  // --- Daily Meal Plan Operations ---
-
-  async getDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
-    // Replicate custom sorting logic to order meals correctly
-    const mealOrder = sql`
-      CASE ${dailyMealPlans.mealType}
-        WHEN 'breakfast' THEN 1
-        WHEN 'lunch'     THEN 2
-        WHEN 'dinner'    THEN 3
-        WHEN 'snack'     THEN 4
-        ELSE 5
-      END`;
-      
-    return db.select().from(dailyMealPlans)
+  // Daily meal plans
+  async getDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]> {
+    const plans = await db.select().from(dailyMealPlans)
       .where(and(eq(dailyMealPlans.userId, userId), eq(dailyMealPlans.date, date)))
-      .orderBy(mealOrder);
+      .orderBy(asc(dailyMealPlans.createdAt));
+    return plans;
   }
 
   async createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan> {
-    const [newPlan] = await db.insert(dailyMealPlans).values(plan).returning();
-    if (!newPlan) throw new Error("Failed to create daily meal plan.");
-    return newPlan;
+    const [created] = await db.insert(dailyMealPlans).values(plan).returning();
+    return created;
   }
 
   async updateMealPlanSelection(planId: number, isSelected: boolean): Promise<DailyMealPlan> {
-    const [updatedPlan] = await db.update(dailyMealPlans)
+    const [updated] = await db.update(dailyMealPlans)
       .set({ isSelected })
       .where(eq(dailyMealPlans.id, planId))
       .returning();
-      
-    if (!updatedPlan) throw new Error("Meal plan not found.");
-    return updatedPlan;
+    return updated;
   }
 
-  async generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
-    // The generation logic is in the route handler; this method just retrieves what exists.
-    return this.getDailyMealPlans(userId, date);
+  async generateDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]> {
+    // Get user preferences for context
+    const preferences = await this.getUserPreferences(userId);
+    const calorieGoal = await this.getCalorieGoal(userId, date);
+    const existingEntries = await this.getFoodEntriesForDate(userId, date);
+
+    // Calculate remaining calories
+    const consumedCalories = existingEntries.reduce((sum, entry) => sum + entry.calories, 0);
+    const dailyCalorieTarget = calorieGoal?.calories || preferences?.dailyCalorieGoal || 2000;
+    const remainingCalories = Math.max(0, dailyCalorieTarget - consumedCalories);
+
+    // Generate meal plans using AI
+    const aiPlans = await generateDailyMealPlans(
+      remainingCalories,
+      preferences?.goal || "maintain_weight",
+      preferences?.dietaryRestrictions || [],
+      preferences?.allergies || []
+    );
+
+    // Save generated plans to database
+    const createdPlans: DailyMealPlan[] = [];
+    for (const plan of aiPlans) {
+      const created = await this.createDailyMealPlan({
+        userId,
+        date,
+        ...plan,
+        isSelected: false,
+      });
+      createdPlans.push(created);
+    }
+
+    return createdPlans;
   }
 }
 
-// Export a single instance of the PgStorage to be used throughout the app.
 export const storage: IStorage = new PgStorage();
