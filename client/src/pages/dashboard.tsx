@@ -13,14 +13,14 @@ import { Camera, Plus, Crown, Bell, Lightbulb, Activity, Sparkles } from "lucide
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import OnboardingTour, { useOnboarding } from "@/components/onboarding-tour";
+// import OnboardingTour, { useOnboarding } from "@/components/onboarding-tour";
 
 export default function Dashboard() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [showWelcome, setShowWelcome] = useState(true);
   const { user } = useAuth();
-  const { showTour, completeTour, skipTour } = useOnboarding();
+  // const { showTour, completeTour, skipTour } = useOnboarding();
 
   // Auto-dismiss welcome message after 3 seconds
   useEffect(() => {
@@ -349,12 +349,12 @@ export default function Dashboard() {
         date={currentDate}
       />
 
-      {/* Onboarding Tour */}
-      <OnboardingTour
+      {/* Onboarding Tour - Disabled */}
+      {/* <OnboardingTour
         isOpen={showTour}
         onClose={skipTour}
         onComplete={completeTour}
-      />
+      /> */}
     </div>
   );
 }
