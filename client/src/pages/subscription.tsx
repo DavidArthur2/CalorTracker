@@ -1,17 +1,7 @@
-import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import { apiRequest } from "@/lib/queryClient";
 import Navigation from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Crown, Check, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
-  : null;
+import { Crown, Check } from "lucide-react";
 
 const mockUser = {
   id: 1,
@@ -19,90 +9,7 @@ const mockUser = {
   trialEndsAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
 };
 
-const SubscriptionForm = ({ clientSecret }: { clientSecret: string }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setIsProcessing(true);
-
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/?payment=success`,
-      },
-    });
-
-    if (error) {
-      toast({
-        title: "Payment Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Payment Successful",
-        description: "Welcome to NutriTrack Pro!",
-      });
-    }
-
-    setIsProcessing(false);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      <Button 
-        type="submit" 
-        disabled={!stripe || isProcessing}
-        className="w-full"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          'Subscribe for $10/month'
-        )}
-      </Button>
-    </form>
-  );
-};
-
 export default function Subscription() {
-  const { toast } = useToast();
-  const [clientSecret, setClientSecret] = useState("");
-
-  const createSubscriptionMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/create-subscription", { userId: mockUser.id });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setClientSecret(data.clientSecret);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  useEffect(() => {
-    createSubscriptionMutation.mutate();
-  }, []);
-
   const daysRemaining = Math.ceil((new Date(mockUser.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
   return (
@@ -192,38 +99,20 @@ export default function Subscription() {
               <CardTitle>Payment Information</CardTitle>
             </CardHeader>
             <CardContent>
-              {!stripePromise ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">Payment processing is not configured yet.</p>
-                  <p className="text-sm text-muted-foreground">Contact support to set up your subscription.</p>
-                </div>
-              ) : createSubscriptionMutation.isPending ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-                  <p className="text-muted-foreground">Setting up your subscription...</p>
-                </div>
-              ) : clientSecret ? (
-                <Elements stripe={stripePromise} options={{ clientSecret }}>
-                  <SubscriptionForm clientSecret={clientSecret} />
-                </Elements>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Failed to initialize payment. Please try again.</p>
-                  <Button 
-                    onClick={() => createSubscriptionMutation.mutate()} 
-                    className="mt-4"
-                  >
-                    Retry
-                  </Button>
-                </div>
-              )}
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">Payment processing is not configured yet.</p>
+                <p className="text-sm text-muted-foreground mb-6">Contact support to set up your subscription.</p>
+                <Button disabled className="w-full">
+                  Subscribe for $10/month
+                </Button>
+              </div>
 
               <div className="mt-6 text-center">
                 <p className="text-xs text-muted-foreground">
                   Cancel anytime • 30-day money-back guarantee
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Secure payment powered by Stripe
+                  Secure payment processing coming soon
                 </p>
               </div>
             </CardContent>
