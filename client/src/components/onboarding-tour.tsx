@@ -111,13 +111,12 @@ export default function OnboardingTour({ isOpen, onClose, onComplete }: Onboardi
 
       if (element && step.target !== "body") {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Add highlight effect with higher z-index for interactivity
+        // Add highlight effect without blocking interaction
         element.style.position = "relative";
-        element.style.zIndex = "1003";
+        element.style.zIndex = "1001";
         element.style.boxShadow = "0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.2)";
         element.style.borderRadius = "8px";
         element.style.transition = "all 0.3s ease";
-        element.style.pointerEvents = "auto";
       }
 
       return () => {
@@ -127,7 +126,6 @@ export default function OnboardingTour({ isOpen, onClose, onComplete }: Onboardi
           element.style.boxShadow = "";
           element.style.borderRadius = "";
           element.style.transition = "";
-          element.style.pointerEvents = "";
         }
       };
     }
@@ -204,10 +202,7 @@ export default function OnboardingTour({ isOpen, onClose, onComplete }: Onboardi
 
   return (
     <>
-      {/* Overlay - simplified for better interaction */}
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[998] transition-opacity duration-300 pointer-events-none" />
-      
-      {/* Tour Tooltip */}
+      {/* Tour Tooltip - no blocking overlay */}
       <div
         className="fixed z-[1002] w-80 transition-all duration-300 ease-out pointer-events-auto"
         style={currentStepData.target === "body" ? 
