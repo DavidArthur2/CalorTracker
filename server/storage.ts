@@ -1,5 +1,20 @@
-import { users, calorieGoals, foodEntries, aiSuggestions, dailyMealPlans, type User, type InsertUser, type CalorieGoal, type InsertCalorieGoal, type FoodEntry, type InsertFoodEntry, type AiSuggestion, type InsertAiSuggestion, type DailyMealPlan, type InsertDailyMealPlan } from "@shared/schema";
+import dotenv from 'dotenv';
+dotenv.config();
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { eq, and, desc, asc, sql } from 'drizzle-orm';
+import * as schema from "@shared/schema";
+import { 
+  users, calorieGoals, foodEntries, aiSuggestions, dailyMealPlans,
+  type User, type InsertUser, 
+  type CalorieGoal, type InsertCalorieGoal, 
+  type FoodEntry, type InsertFoodEntry, 
+  type AiSuggestion, type InsertAiSuggestion, 
+  type DailyMealPlan, type InsertDailyMealPlan 
+} from "@shared/schema";
 
+// This is the IStorage interface your application depends on.
+// We will implement this with a PostgreSQL backend.
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -31,180 +46,179 @@ export interface IStorage {
   generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private calorieGoals: Map<string, CalorieGoal>; // key: userId-date
-  private foodEntries: Map<number, FoodEntry>;
-  private aiSuggestions: Map<number, AiSuggestion>;
-  private dailyMealPlans: Map<number, DailyMealPlan>;
-  private currentUserId: number;
-  private currentGoalId: number;
-  private currentEntryId: number;
-  private currentSuggestionId: number;
-  private currentMealPlanId: number;
+// Ensure the DATABASE_URL is available
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required.");
+}
 
-  constructor() {
-    this.users = new Map();
-    this.calorieGoals = new Map();
-    this.foodEntries = new Map();
-    this.aiSuggestions = new Map();
-    this.dailyMealPlans = new Map();
-    this.currentUserId = 1;
-    this.currentGoalId = 1;
-    this.currentEntryId = 1;
-    this.currentSuggestionId = 1;
-    this.currentMealPlanId = 1;
-  }
+// Setup the database connection and Drizzle client
+const client = postgres(process.env.DATABASE_URL);
+const db = drizzle(client, { schema });
+
+/**
+ * PostgreSQL implementation of the IStorage interface using Drizzle ORM.
+ */
+export class PgStorage implements IStorage {
+
+  // --- User Operations ---
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    return db.query.users.findFirst({ where: eq(users.id, id) });
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    return db.query.users.findFirst({ where: eq(users.username, username) });
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+    return db.query.users.findFirst({ where: eq(users.email, email) });
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 3); // 3-day trial
-    
-    const user: User = {
+
+    const [newUser] = await db.insert(users).values({
       ...insertUser,
-      id,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      subscriptionStatus: "trial",
       trialEndsAt,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
-    return user;
+    }).returning();
+    
+    if (!newUser) throw new Error("Failed to create user.");
+    return newUser;
   }
 
   async updateUserStripeInfo(id: number, customerId: string, subscriptionId?: string): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    
-    const updatedUser = {
-      ...user,
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId || user.stripeSubscriptionId,
-    };
-    this.users.set(id, updatedUser);
+    const [updatedUser] = await db.update(users)
+      .set({
+        stripeCustomerId: customerId,
+        ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
+      })
+      .where(eq(users.id, id))
+      .returning();
+      
+    if (!updatedUser) throw new Error("User not found to update Stripe info.");
     return updatedUser;
   }
 
   async updateUserSubscriptionStatus(id: number, status: "trial" | "active" | "canceled" | "expired"): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    
-    const updatedUser = { ...user, subscriptionStatus: status };
-    this.users.set(id, updatedUser);
+    const [updatedUser] = await db.update(users)
+      .set({ subscriptionStatus: status })
+      .where(eq(users.id, id))
+      .returning();
+
+    if (!updatedUser) throw new Error("User not found to update subscription status.");
     return updatedUser;
   }
 
+  // --- Calorie Goal Operations ---
+
   async getCalorieGoal(userId: number, date: string): Promise<CalorieGoal | undefined> {
-    return this.calorieGoals.get(`${userId}-${date}`);
+    return db.query.calorieGoals.findFirst({
+      where: and(eq(calorieGoals.userId, userId), eq(calorieGoals.date, date))
+    });
   }
 
   async setCalorieGoal(goal: InsertCalorieGoal): Promise<CalorieGoal> {
-    const id = this.currentGoalId++;
-    const calorieGoal: CalorieGoal = { ...goal, id };
-    this.calorieGoals.set(`${goal.userId}-${goal.date}`, calorieGoal);
-    return calorieGoal;
+    // Upsert: insert or update if a goal for the user/date already exists
+    const [result] = await db.insert(calorieGoals)
+      .values(goal)
+      .onConflictDoUpdate({
+        target: [calorieGoals.userId, calorieGoals.date],
+        set: { calories: goal.calories, protein: goal.protein, carbs: goal.carbs, fat: goal.fat },
+      })
+      .returning();
+      
+    if (!result) throw new Error("Failed to set calorie goal.");
+    return result;
   }
-
+  
   async updateCalorieGoal(userId: number, date: string, goalUpdate: Partial<InsertCalorieGoal>): Promise<CalorieGoal> {
-    const existing = this.calorieGoals.get(`${userId}-${date}`);
-    if (!existing) throw new Error("Calorie goal not found");
-    
-    const updated = { ...existing, ...goalUpdate };
-    this.calorieGoals.set(`${userId}-${date}`, updated);
-    return updated;
+    const [updatedGoal] = await db.update(calorieGoals)
+      .set(goalUpdate)
+      .where(and(eq(calorieGoals.userId, userId), eq(calorieGoals.date, date)))
+      .returning();
+
+    if (!updatedGoal) throw new Error("Calorie goal not found to update.");
+    return updatedGoal;
   }
+  
+  // --- Food Entry Operations ---
 
   async getFoodEntriesForDate(userId: number, date: string): Promise<FoodEntry[]> {
-    return Array.from(this.foodEntries.values())
-      .filter(entry => entry.userId === userId && entry.date === date)
-      .sort((a, b) => new Date(a.timestamp!).getTime() - new Date(b.timestamp!).getTime());
+    return db.query.foodEntries.findMany({
+      where: and(eq(foodEntries.userId, userId), eq(foodEntries.date, date)),
+      orderBy: [asc(foodEntries.timestamp)]
+    });
   }
 
   async createFoodEntry(entry: InsertFoodEntry): Promise<FoodEntry> {
-    const id = this.currentEntryId++;
-    const foodEntry: FoodEntry = {
-      ...entry,
-      id,
-      aiAnalysis: null,
-      timestamp: new Date(),
-    };
-    this.foodEntries.set(id, foodEntry);
-    return foodEntry;
+    const [newEntry] = await db.insert(foodEntries).values(entry).returning();
+    if (!newEntry) throw new Error("Failed to create food entry.");
+    return newEntry;
   }
 
   async getFoodEntry(id: number): Promise<FoodEntry | undefined> {
-    return this.foodEntries.get(id);
+    return db.query.foodEntries.findFirst({ where: eq(foodEntries.id, id) });
   }
 
   async deleteFoodEntry(id: number): Promise<void> {
-    this.foodEntries.delete(id);
+    await db.delete(foodEntries).where(eq(foodEntries.id, id));
   }
-
+  
+  // --- AI Suggestion Operations ---
+  
   async getAiSuggestionsForDate(userId: number, date: string): Promise<AiSuggestion[]> {
-    return Array.from(this.aiSuggestions.values())
-      .filter(suggestion => suggestion.userId === userId && suggestion.date === date)
-      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    return db.query.aiSuggestions.findMany({
+      where: and(eq(aiSuggestions.userId, userId), eq(aiSuggestions.date, date)),
+      orderBy: [desc(aiSuggestions.createdAt)]
+    });
   }
 
   async createAiSuggestion(suggestion: InsertAiSuggestion): Promise<AiSuggestion> {
-    const id = this.currentSuggestionId++;
-    const aiSuggestion: AiSuggestion = {
-      ...suggestion,
-      id,
-      createdAt: new Date(),
-    };
-    this.aiSuggestions.set(id, aiSuggestion);
-    return aiSuggestion;
+    const [newSuggestion] = await db.insert(aiSuggestions).values(suggestion).returning();
+    if (!newSuggestion) throw new Error("Failed to create AI suggestion.");
+    return newSuggestion;
   }
 
+  // --- Daily Meal Plan Operations ---
+
   async getDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
-    return Array.from(this.dailyMealPlans.values())
-      .filter(plan => plan.userId === userId && plan.date === date)
-      .sort((a, b) => {
-        const mealOrder = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
-        return mealOrder[a.mealType] - mealOrder[b.mealType];
-      });
+    // Replicate custom sorting logic to order meals correctly
+    const mealOrder = sql`
+      CASE ${dailyMealPlans.mealType}
+        WHEN 'breakfast' THEN 1
+        WHEN 'lunch'     THEN 2
+        WHEN 'dinner'    THEN 3
+        WHEN 'snack'     THEN 4
+        ELSE 5
+      END`;
+      
+    return db.select().from(dailyMealPlans)
+      .where(and(eq(dailyMealPlans.userId, userId), eq(dailyMealPlans.date, date)))
+      .orderBy(mealOrder);
   }
 
   async createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan> {
-    const id = this.currentMealPlanId++;
-    const mealPlan: DailyMealPlan = {
-      ...plan,
-      id,
-      createdAt: new Date(),
-    };
-    this.dailyMealPlans.set(id, mealPlan);
-    return mealPlan;
+    const [newPlan] = await db.insert(dailyMealPlans).values(plan).returning();
+    if (!newPlan) throw new Error("Failed to create daily meal plan.");
+    return newPlan;
   }
 
   async updateMealPlanSelection(planId: number, isSelected: boolean): Promise<DailyMealPlan> {
-    const plan = this.dailyMealPlans.get(planId);
-    if (!plan) throw new Error("Meal plan not found");
-    
-    const updatedPlan = { ...plan, isSelected };
-    this.dailyMealPlans.set(planId, updatedPlan);
+    const [updatedPlan] = await db.update(dailyMealPlans)
+      .set({ isSelected })
+      .where(eq(dailyMealPlans.id, planId))
+      .returning();
+      
+    if (!updatedPlan) throw new Error("Meal plan not found.");
     return updatedPlan;
   }
 
   async generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
-    // This method will be called by the route handler after AI generation
-    // For now, it just returns existing plans
+    // The generation logic is in the route handler; this method just retrieves what exists.
     return this.getDailyMealPlans(userId, date);
   }
 }
 
-export const storage = new MemStorage();
+// Export a single instance of the PgStorage to be used throughout the app.
+export const storage: IStorage = new PgStorage();
