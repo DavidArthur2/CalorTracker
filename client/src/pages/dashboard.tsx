@@ -9,7 +9,8 @@ import DailyMealPlans from "@/components/daily-meal-plans";
 import FoodScannerModal from "@/components/food-scanner-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Plus, Crown, Bell, Lightbulb, Activity, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Camera, Plus, Crown, Bell, Lightbulb, Activity, Sparkles, Brain, Target, BarChart3, Zap, CheckCircle, Star } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -119,50 +120,72 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <Navigation />
       
       {/* Main Content */}
       <main className="main-content">
         {/* Header */}
-        <header className="bg-white dark:bg-card border-b border-border px-4 py-4 md:px-6">
+        <header className="bg-gradient-to-r from-slate-800/80 to-purple-800/80 backdrop-blur-lg border-b border-white/10 px-4 py-6 md:px-6">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-2 mb-1">
-                <h2 className="text-xl font-semibold text-foreground">
-                  Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
+            <div className="animate-fade-in">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg">
+                  <Target className="h-6 w-6" />
+                </div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
+                  Welcome back{user?.firstName ? `, ${user.firstName}` : ''}! ✨
                 </h2>
                 {showWelcome && (
-                  <Sparkles className="h-5 w-5 text-yellow-500 animate-pulse" />
+                  <Sparkles className="h-6 w-6 text-yellow-400 animate-pulse" />
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-slate-300 ml-14">
                 {new Date().toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   year: 'numeric', 
                   month: 'long', 
                   day: 'numeric' 
-                })}
+                })} • Track your nutrition journey
               </p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 animate-slide-in-right">
               {isTrialExpiring && (
-                <div className="hidden md:block trial-status-gradient px-3 py-1 rounded-full text-white text-sm">
-                  Free Trial • {daysRemaining} days left
-                </div>
+                <Badge className="hidden md:block bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg">
+                  👑 Free Trial • {daysRemaining} days left
+                </Badge>
               )}
-              <Button variant="ghost" size="icon">
-                <Bell className="h-4 w-4" />
+              <Button 
+                onClick={() => setScannerOpen(true)}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                📸 Scan Food
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-slate-300 hover:text-white hover:bg-white/10"
+              >
+                <Bell className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </header>
 
         {/* Dashboard Content */}
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-8">
           
           {/* Daily Progress Overview */}
-          <div data-tour="daily-progress">
+          <div data-tour="daily-progress" className="animate-fade-in">
+            <div className="mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">📊 Today's Progress</h3>
+              </div>
+            </div>
             <DailyProgress 
               goal={goalData}
               consumed={{

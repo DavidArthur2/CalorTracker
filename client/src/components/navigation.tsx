@@ -41,10 +41,17 @@ export default function Navigation() {
       </nav>
 
       {/* Desktop Sidebar */}
-      <aside className="desktop-sidebar" data-tour="navigation">
-        <div className="p-6 border-b border-border">
-          <h1 className="text-2xl font-bold text-foreground">CalorTracker</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI-powered nutrition tracking</p>
+      <aside className="desktop-sidebar bg-gradient-to-b from-slate-800 to-slate-900 border-r border-white/10" data-tour="navigation">
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">CalorTracker</h1>
+              <p className="text-sm text-slate-300">🚀 AI-powered nutrition tracking</p>
+            </div>
+          </div>
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
@@ -53,18 +60,26 @@ export default function Navigation() {
             const isActive = location === item.href;
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`sidebar-nav-item ${isActive ? 'active' : ''}`}>
+                <div className={`group flex items-center px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+                  isActive 
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg' 
+                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                }`}>
                   <Icon className="mr-3 h-5 w-5" />
-                  {item.label}
+                  <span className="font-medium">{item.label}</span>
                 </div>
               </Link>
             );
           })}
           
           <Link href="/subscription">
-            <div className={`sidebar-nav-item ${location === '/subscription' ? 'active' : ''}`}>
+            <div className={`group flex items-center px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 ${
+              location === '/subscription'
+                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg' 
+                : 'text-slate-300 hover:text-white hover:bg-white/10'
+            }`}>
               <Crown className="mr-3 h-5 w-5" />
-              Subscription
+              <span className="font-medium">Subscription</span>
             </div>
           </Link>
         </nav>
