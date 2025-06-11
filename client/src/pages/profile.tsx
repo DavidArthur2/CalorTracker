@@ -14,8 +14,28 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function Profile() {
   const { toast } = useToast();
-  const { user, logoutMutation } = useAuth();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/logout");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully",
+      });
+      window.location.href = "/";
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch user preferences
   const { data: userPreferences } = useQuery({

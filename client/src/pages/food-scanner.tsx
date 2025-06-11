@@ -35,8 +35,18 @@ export default function FoodScanner() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('image', file);
+      formData.append('date', new Date().toISOString().split('T')[0]);
+      formData.append('mealType', 'snack');
+      
       const response = await apiRequest('POST', '/api/analyze-food', formData);
-      return response.json();
+      const text = await response.text();
+      
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        console.error('Invalid JSON response:', text);
+        throw new Error('Server returned invalid response. Please try again.');
+      }
     },
     onSuccess: (data) => {
       setAnalysisResult(data);
