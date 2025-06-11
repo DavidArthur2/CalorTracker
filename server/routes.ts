@@ -3,8 +3,8 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import multer from "multer";
 import { storage } from "./storage";
-import { analyzeFood, generateMealSuggestion, generateExerciseSuggestion } from "./openai";
-import { insertFoodEntrySchema, insertCalorieGoalSchema, insertAiSuggestionSchema } from "@shared/schema";
+import { analyzeFood, generateMealSuggestion, generateExerciseSuggestion, generateDailyMealPlans } from "./openai";
+import { insertFoodEntrySchema, insertCalorieGoalSchema, insertAiSuggestionSchema, insertDailyMealPlanSchema } from "@shared/schema";
 import { z } from "zod";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -246,6 +246,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
       res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Daily meal plans
+  app.get("/api/daily-meal-plans/:userId/:date", async (req, res) => {
+    try {
+      const { userId, date } = req.params;
+      const plans = await storage.getDailyMealPlans(parseInt(userId), date);
+      res.json(plans);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/generate-daily-meal-plans", async (req, res) => {
+    try {
+      const { userId, date, calorieGoal, proteinGoal, carbGoal, fatGoal, dietaryRestrictions } = req.body;
+      
+      // Check if plans already exist for this date
+      const existingPlans = await storage.getDailyMealPlans(userId, date);
+      if (existingPlans.length > 0) {
+        return res.json(existingPlans);
+      }
+
+      // Generate new meal plans using AI
+      const aiMealPlans = await generateDailyMealPlans(
+        calorieGoal || 2000,
+        proteinGoal || 150,
+        carbGoal || 200,
+        fatGoal || 70,
+        dietaryRestrictions
+      );
+
+      // Save the generated plans to storage
+      const savedPlans = [];
+      for (const aiPlan of aiMealPlans) {
+        const planData = {
+          userId,
+          date,
+          mealType: aiPlan.mealType,
+          title: aiPlan.title,
+          description: aiPlan.description,
+          estimatedCalories: aiPlan.estimatedCalories,
+          estimatedProtein: aiPlan.estimatedProtein,
+          estimatedCarbs: aiPlan.estimatedCarbs,
+          estimatedFat: aiPlan.estimatedFat,
+          ingredients: aiPlan.ingredients,
+          instructions: aiPlan.instructions,
+          isSelected: false,
+        };
+        
+        const savedPlan = await storage.createDailyMealPlan(planData);
+        savedPlans.push(savedPlan);
+      }
+
+      res.json(savedPlans);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to generate meal plans: " + error.message });
+    }
+  });
+
+  app.post("/api/select-meal-plan", async (req, res) => {
+    try {
+      const { planId, isSelected } = req.body;
+      const updatedPlan = await storage.updateMealPlanSelection(planId, isSelected);
+      res.json(updatedPlan);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

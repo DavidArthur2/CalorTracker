@@ -48,10 +48,12 @@ export class MemStorage implements IStorage {
     this.calorieGoals = new Map();
     this.foodEntries = new Map();
     this.aiSuggestions = new Map();
+    this.dailyMealPlans = new Map();
     this.currentUserId = 1;
     this.currentGoalId = 1;
     this.currentEntryId = 1;
     this.currentSuggestionId = 1;
+    this.currentMealPlanId = 1;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -167,6 +169,41 @@ export class MemStorage implements IStorage {
     };
     this.aiSuggestions.set(id, aiSuggestion);
     return aiSuggestion;
+  }
+
+  async getDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
+    return Array.from(this.dailyMealPlans.values())
+      .filter(plan => plan.userId === userId && plan.date === date)
+      .sort((a, b) => {
+        const mealOrder = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+        return mealOrder[a.mealType] - mealOrder[b.mealType];
+      });
+  }
+
+  async createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan> {
+    const id = this.currentMealPlanId++;
+    const mealPlan: DailyMealPlan = {
+      ...plan,
+      id,
+      createdAt: new Date(),
+    };
+    this.dailyMealPlans.set(id, mealPlan);
+    return mealPlan;
+  }
+
+  async updateMealPlanSelection(planId: number, isSelected: boolean): Promise<DailyMealPlan> {
+    const plan = this.dailyMealPlans.get(planId);
+    if (!plan) throw new Error("Meal plan not found");
+    
+    const updatedPlan = { ...plan, isSelected };
+    this.dailyMealPlans.set(planId, updatedPlan);
+    return updatedPlan;
+  }
+
+  async generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
+    // This method will be called by the route handler after AI generation
+    // For now, it just returns existing plans
+    return this.getDailyMealPlans(userId, date);
   }
 }
 

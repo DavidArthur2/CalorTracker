@@ -5,6 +5,7 @@ import Navigation from "@/components/navigation";
 import DailyProgress from "@/components/daily-progress";
 import MealsTimeline from "@/components/meals-timeline";
 import AiSuggestions from "@/components/ai-suggestions";
+import DailyMealPlans from "@/components/daily-meal-plans";
 import FoodScannerModal from "@/components/food-scanner-modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

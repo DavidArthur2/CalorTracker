@@ -143,3 +143,69 @@ export async function generateExerciseSuggestion(excessCalories: number): Promis
     throw new Error("Failed to generate exercise suggestion. Please try again.");
   }
 }
+
+export interface MealPlan {
+  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  title: string;
+  description: string;
+  estimatedCalories: number;
+  estimatedProtein: number;
+  estimatedCarbs: number;
+  estimatedFat: number;
+  ingredients: string[];
+  instructions?: string;
+}
+
+export async function generateDailyMealPlans(
+  calorieGoal: number,
+  proteinGoal: number,
+  carbGoal: number,
+  fatGoal: number,
+  dietaryRestrictions?: string
+): Promise<MealPlan[]> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a nutrition AI assistant. Generate a complete daily meal plan with breakfast, lunch, dinner, and one healthy snack. Each meal should have realistic nutrition estimates and simple preparation instructions. Respond with JSON in this exact format:
+          {
+            "meals": [
+              {
+                "mealType": "breakfast",
+                "title": "Meal name",
+                "description": "Brief appetizing description",
+                "estimatedCalories": number,
+                "estimatedProtein": number,
+                "estimatedCarbs": number,
+                "estimatedFat": number,
+                "ingredients": ["ingredient1", "ingredient2"],
+                "instructions": "Simple preparation steps"
+              }
+            ]
+          }`
+        },
+        {
+          role: "user",
+          content: `Generate a daily meal plan for someone with these nutrition goals:
+          - Calories: ${calorieGoal}
+          - Protein: ${proteinGoal}g
+          - Carbs: ${carbGoal}g  
+          - Fat: ${fatGoal}g
+          ${dietaryRestrictions ? `- Dietary restrictions: ${dietaryRestrictions}` : ''}
+          
+          Create balanced, tasty meals that hit these targets. Include breakfast, lunch, dinner, and one healthy snack.`
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 1500,
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || "{}");
+    return result.meals || [];
+  } catch (error) {
+    console.error("OpenAI meal plan generation error:", error);
+    throw new Error("Failed to generate meal plans. Please try again.");
+  }
+}
