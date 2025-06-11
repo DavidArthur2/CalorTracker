@@ -21,7 +21,7 @@ export interface FoodAnalysis {
 export async function analyzeFood(base64Image: string): Promise<FoodAnalysis> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
@@ -40,7 +40,7 @@ export async function analyzeFood(base64Image: string): Promise<FoodAnalysis> {
             "advice": "string (optional advice if image quality is poor or unclear)"
           }
           
-          If the image is unclear or doesn't show food clearly, set confidence low and provide helpful advice in the advice field.
+          If the image is unclear or doesn't show food clearly, set confidence low and provide helpful advice in the advice field of what photo to make.
           Make reasonable estimates based on visible portion sizes. Be as accurate as possible with nutritional values.`
         },
         {
@@ -95,11 +95,11 @@ export async function generateMealSuggestion(
     ).join(", ");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
-          content: `You are a nutrition AI assistant. Provide personalized meal suggestions based on remaining calories, time of day, and what the user has already eaten. Keep suggestions practical, healthy, and specific. Respond in a friendly, conversational tone.`
+          content: `You are a nutrition AI assistant. Provide personalized meal suggestions based on remaining calories, time of day, and what the user has already eaten. Keep suggestions practical, healthy, and specific. Respond in a friendly, conversational tone. Can contain description about the preparation too. The response always be in HTML formatted text, and can contain emojis to make it more engaging.`
         },
         {
           role: "user",
@@ -110,7 +110,7 @@ export async function generateMealSuggestion(
           Please suggest what I should eat next, considering the time of day and my remaining calorie budget. Be specific with food suggestions.`
         }
       ],
-      max_tokens: 200,
+      max_tokens: 300,
     });
 
     return response.choices[0].message.content || "Consider having a balanced meal that fits your remaining calorie budget.";
@@ -123,7 +123,7 @@ export async function generateMealSuggestion(
 export async function generateExerciseSuggestion(excessCalories: number): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
@@ -165,11 +165,11 @@ export async function generateDailyMealPlans(
 ): Promise<MealPlan[]> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
-          content: `You are a nutrition AI assistant. Generate a complete daily meal plan with breakfast, lunch, dinner, and one healthy snack. Each meal should have realistic nutrition estimates and simple preparation instructions. Respond with JSON in this exact format:
+          content: `You are a nutrition AI assistant. Generate a complete daily meal plan with breakfast, lunch, dinner, and one healthy snack. Each meal should have realistic nutrition estimates and detailed preparation instructions. Respond with JSON in this exact format:
           {
             "meals": [
               {
@@ -181,7 +181,7 @@ export async function generateDailyMealPlans(
                 "estimatedCarbs": number,
                 "estimatedFat": number,
                 "ingredients": ["ingredient1", "ingredient2"],
-                "instructions": "Simple preparation steps"
+                "instructions": "Detailed preparation steps"
               }
             ]
           }`

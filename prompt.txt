@@ -1,0 +1,14 @@
+Please make an app, which will track a Users daily calory and nutrition consume.
+The user will need to set the calory that he wants that day to eat, he can set it forward in a calendar for more days.
+He will be needed to make photos of the food. The photo will be sent to the OpenAI through API and tell him to analyze it, and respond with the calory, and nutritions that the food contains. Also, if its not clear, the AI can respond with advice how to retake the photo.
+The response from ai with calory and nutritions will be added to the daily of the person, along with a description of it.
+Include a free basic trial with 3 day try, and only one type of subscription for 10$ a month.
+The AI will suggest what to eat next depending on the current time of the day, and also, if the limit was reached, it will tell the user what exercises he can do to get rid of them calories in plus. If its too much, just made a cheating day.
+By default it will suggest a meal menu for the whole day, but he can regenerate it with ai.
+Also, when he selects the meal, it will show him the detailed receipt, and nutritions, and guide which was generated with ai.
+Use OpenAI 4.1 model.
+The domain will be calortracker.com
+The user can set on its profile details about himself:
+Age, gender, height, weight, etc...
+Allergies.
+The AI will always work along with these informations.

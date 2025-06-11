@@ -156,6 +156,16 @@ export default function Dashboard() {
             }}
           />
 
+          {/* Daily Meal Plans */}
+          <DailyMealPlans 
+            userId={mockUser.id}
+            date={currentDate}
+            calorieGoal={goalData.calories}
+            proteinGoal={goalData.protein}
+            carbGoal={goalData.carbs}
+            fatGoal={goalData.fat}
+          />
+
           {/* AI Suggestions */}
           {aiSuggestionsArray.length > 0 && (
             <AiSuggestions suggestions={aiSuggestionsArray} />
