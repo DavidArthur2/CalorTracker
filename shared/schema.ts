@@ -52,6 +52,23 @@ export const aiSuggestions = pgTable("ai_suggestions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const dailyMealPlans = pgTable("daily_meal_plans", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  date: text("date").notNull(),
+  mealType: text("meal_type").$type<"breakfast" | "lunch" | "dinner" | "snack">().notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  estimatedCalories: integer("estimated_calories").notNull(),
+  estimatedProtein: decimal("estimated_protein", { precision: 8, scale: 2 }).notNull(),
+  estimatedCarbs: decimal("estimated_carbs", { precision: 8, scale: 2 }).notNull(),
+  estimatedFat: decimal("estimated_fat", { precision: 8, scale: 2 }).notNull(),
+  ingredients: json("ingredients").$type<string[]>().notNull(),
+  instructions: text("instructions"),
+  isSelected: boolean("is_selected").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -91,6 +108,21 @@ export const insertAiSuggestionSchema = createInsertSchema(aiSuggestions).pick({
   timeOfDay: true,
 });
 
+export const insertDailyMealPlanSchema = createInsertSchema(dailyMealPlans).pick({
+  userId: true,
+  date: true,
+  mealType: true,
+  title: true,
+  description: true,
+  estimatedCalories: true,
+  estimatedProtein: true,
+  estimatedCarbs: true,
+  estimatedFat: true,
+  ingredients: true,
+  instructions: true,
+  isSelected: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -103,3 +135,6 @@ export type InsertFoodEntry = z.infer<typeof insertFoodEntrySchema>;
 
 export type AiSuggestion = typeof aiSuggestions.$inferSelect;
 export type InsertAiSuggestion = z.infer<typeof insertAiSuggestionSchema>;
+
+export type DailyMealPlan = typeof dailyMealPlans.$inferSelect;
+export type InsertDailyMealPlan = z.infer<typeof insertDailyMealPlanSchema>;

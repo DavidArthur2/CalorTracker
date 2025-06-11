@@ -1,4 +1,4 @@
-import { users, calorieGoals, foodEntries, aiSuggestions, type User, type InsertUser, type CalorieGoal, type InsertCalorieGoal, type FoodEntry, type InsertFoodEntry, type AiSuggestion, type InsertAiSuggestion } from "@shared/schema";
+import { users, calorieGoals, foodEntries, aiSuggestions, dailyMealPlans, type User, type InsertUser, type CalorieGoal, type InsertCalorieGoal, type FoodEntry, type InsertFoodEntry, type AiSuggestion, type InsertAiSuggestion, type DailyMealPlan, type InsertDailyMealPlan } from "@shared/schema";
 
 export interface IStorage {
   // User operations
@@ -23,6 +23,12 @@ export interface IStorage {
   // AI suggestions
   getAiSuggestionsForDate(userId: number, date: string): Promise<AiSuggestion[]>;
   createAiSuggestion(suggestion: InsertAiSuggestion): Promise<AiSuggestion>;
+  
+  // Daily meal plans
+  getDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]>;
+  createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan>;
+  updateMealPlanSelection(planId: number, isSelected: boolean): Promise<DailyMealPlan>;
+  generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -30,10 +36,12 @@ export class MemStorage implements IStorage {
   private calorieGoals: Map<string, CalorieGoal>; // key: userId-date
   private foodEntries: Map<number, FoodEntry>;
   private aiSuggestions: Map<number, AiSuggestion>;
+  private dailyMealPlans: Map<number, DailyMealPlan>;
   private currentUserId: number;
   private currentGoalId: number;
   private currentEntryId: number;
   private currentSuggestionId: number;
+  private currentMealPlanId: number;
 
   constructor() {
     this.users = new Map();
