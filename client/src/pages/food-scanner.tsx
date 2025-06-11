@@ -113,6 +113,19 @@ export default function FoodScanner() {
   };
 
   const handleCameraCapture = () => {
+    // Basic mobile device detection
+    const isMobile =
+      /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) ||
+      (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    if (!isMobile) {
+      toast({
+        title: "Camera not available",
+        description: "Photo capture is only supported on mobile devices. Please upload an image instead.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.accept = "image/*";
       fileInputRef.current.setAttribute("capture", "environment");

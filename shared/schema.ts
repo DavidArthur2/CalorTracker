@@ -98,6 +98,13 @@ export const insertFoodEntrySchema = createInsertSchema(foodEntries).pick({
   fiber: true,
   sugar: true,
   sodium: true,
+}).extend({
+  protein: z.union([z.string(), z.number()]).transform((val) => val.toString()),
+  carbs: z.union([z.string(), z.number()]).transform((val) => val.toString()),
+  fat: z.union([z.string(), z.number()]).transform((val) => val.toString()),
+  fiber: z.union([z.string(), z.number()]).optional().transform((val) => val === undefined ? undefined : val.toString()),
+  sugar: z.union([z.string(), z.number()]).optional().transform((val) => val === undefined ? undefined : val.toString()),
+  sodium: z.union([z.string(), z.number()]).optional().transform((val) => val === undefined ? undefined : val.toString()),
 });
 
 export const insertAiSuggestionSchema = createInsertSchema(aiSuggestions).pick({
