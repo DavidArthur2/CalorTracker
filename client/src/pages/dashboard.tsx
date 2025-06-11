@@ -162,15 +162,17 @@ export default function Dashboard() {
         <div className="p-4 md:p-6 space-y-6">
           
           {/* Daily Progress Overview */}
-          <DailyProgress 
-            goal={goalData}
-            consumed={{
-              calories: totalCalories,
-              protein: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.protein || 0), 0),
-              carbs: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.carbs || 0), 0),
-              fat: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.fat || 0), 0),
-            }}
-          />
+          <div data-tour="daily-progress">
+            <DailyProgress 
+              goal={goalData}
+              consumed={{
+                calories: totalCalories,
+                protein: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.protein || 0), 0),
+                carbs: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.carbs || 0), 0),
+                fat: foodEntriesArray.reduce((sum: number, entry: any) => sum + parseFloat(entry?.fat || 0), 0),
+              }}
+            />
+          </div>
 
           {/* Daily Meal Plans */}
           <DailyMealPlans 
@@ -184,7 +186,9 @@ export default function Dashboard() {
 
           {/* AI Suggestions */}
           {aiSuggestionsArray.length > 0 && (
-            <AiSuggestions suggestions={aiSuggestionsArray} />
+            <div data-tour="ai-suggestions">
+              <AiSuggestions suggestions={aiSuggestionsArray} />
+            </div>
           )}
 
           {/* AI Meal Suggestion */}
@@ -219,15 +223,18 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             {/* Food Scanner Card */}
-            <Card>
+            <Card data-tour="food-scanner" className="hover:shadow-lg transition-all duration-200 transform hover:scale-102">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 transition-colors hover:bg-primary/20">
                     <Camera className="text-primary h-8 w-8" />
                   </div>
                   <h3 className="font-semibold text-foreground mb-2">Scan Your Food</h3>
                   <p className="text-sm text-muted-foreground mb-4">Take a photo and let AI analyze the nutrition</p>
-                  <Button onClick={() => setScannerOpen(true)} className="w-full">
+                  <Button 
+                    onClick={() => setScannerOpen(true)} 
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  >
                     <Camera className="mr-2 h-4 w-4" />
                     Start Scanning
                   </Button>

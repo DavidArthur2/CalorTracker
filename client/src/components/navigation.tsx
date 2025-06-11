@@ -41,10 +41,10 @@ export default function Navigation() {
       </nav>
 
       {/* Desktop Sidebar */}
-      <aside className="desktop-sidebar">
+      <aside className="desktop-sidebar" data-tour="navigation">
         <div className="p-6 border-b border-border">
-          <h1 className="text-2xl font-bold text-foreground">NutriTrack</h1>
-          <p className="text-sm text-muted-foreground mt-1">Smart Nutrition AI</p>
+          <h1 className="text-2xl font-bold text-foreground">CalorTracker</h1>
+          <p className="text-sm text-muted-foreground mt-1">AI-powered nutrition tracking</p>
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
