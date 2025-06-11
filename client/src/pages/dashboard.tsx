@@ -20,6 +20,16 @@ export default function Dashboard() {
   const [showWelcome, setShowWelcome] = useState(true);
   const { user } = useAuth();
 
+  // Auto-dismiss welcome message after 3 seconds
+  useEffect(() => {
+    if (showWelcome) {
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcome]);
+
   const { data: calorieGoal } = useQuery({
     queryKey: [`/api/calorie-goal/${user?.id}/${currentDate}`],
     enabled: !!user?.id,
@@ -116,7 +126,14 @@ export default function Dashboard() {
         <header className="bg-white dark:bg-card border-b border-border px-4 py-4 md:px-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-foreground">Today's Nutrition</h2>
+              <div className="flex items-center space-x-2 mb-1">
+                <h2 className="text-xl font-semibold text-foreground">
+                  Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
+                </h2>
+                {showWelcome && (
+                  <Sparkles className="h-5 w-5 text-yellow-500 animate-pulse" />
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 {new Date().toLocaleDateString('en-US', { 
                   weekday: 'long', 
@@ -319,7 +336,7 @@ export default function Dashboard() {
       <FoodScannerModal 
         open={scannerOpen} 
         onOpenChange={setScannerOpen}
-        userId={mockUser.id}
+        userId={user?.id}
         date={currentDate}
       />
     </div>
