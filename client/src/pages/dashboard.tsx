@@ -57,7 +57,7 @@ export default function Dashboard() {
     mutationFn: async () => {
       const currentTime = new Date().toTimeString().slice(0, 5);
       const response = await apiRequest('POST', '/api/meal-suggestion', {
-        userId: mockUser.id,
+        userId: user?.id,
         date: currentDate,
         remainingCalories,
         currentTime,
@@ -65,7 +65,7 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/ai-suggestions/${mockUser.id}/${currentDate}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/ai-suggestions/${user?.id}/${currentDate}`] });
       toast({
         title: "AI suggestion generated!",
         description: "Check your new meal recommendation.",
@@ -84,14 +84,14 @@ export default function Dashboard() {
     mutationFn: async () => {
       const excessCalories = Math.abs(remainingCalories);
       const response = await apiRequest('POST', '/api/exercise-suggestion', {
-        userId: mockUser.id,
+        userId: user?.id,
         date: currentDate,
         excessCalories,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/ai-suggestions/${mockUser.id}/${currentDate}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/ai-suggestions/${user?.id}/${currentDate}`] });
       toast({
         title: "Exercise suggestion generated!",
         description: "Check your new workout recommendation.",
@@ -155,7 +155,7 @@ export default function Dashboard() {
 
           {/* Daily Meal Plans */}
           <DailyMealPlans 
-            userId={mockUser.id}
+            userId={user?.id}
             date={currentDate}
             calorieGoal={goalData.calories}
             proteinGoal={goalData.protein}
@@ -235,7 +235,7 @@ export default function Dashboard() {
           </div>
 
           {/* Today's Meals */}
-          <MealsTimeline entries={foodEntriesArray} userId={mockUser.id} date={currentDate} />
+          <MealsTimeline entries={foodEntriesArray} userId={user?.id} date={currentDate} />
 
           {/* Exercise Recommendations (shown when calories exceeded) */}
           {remainingCalories < -50 && (
