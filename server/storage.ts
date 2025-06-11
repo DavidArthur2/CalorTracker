@@ -101,7 +101,11 @@ export class PgStorage implements IStorage {
   }
 
   async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
-    const [newPreferences] = await db.insert(userPreferences).values(preferences).returning();
+    const validatedPreferences = {
+      ...preferences,
+      gender: preferences.gender as "male" | "female" | "other" | null
+    };
+    const [newPreferences] = await db.insert(userPreferences).values(validatedPreferences).returning();
     return newPreferences;
   }
 
@@ -211,7 +215,7 @@ export class PgStorage implements IStorage {
         calorieGoal?.protein || 150,
         calorieGoal?.carbs || 250,
         calorieGoal?.fat || 67,
-        userPrefs?.dietaryRestrictions || null
+        userPrefs?.dietaryRestrictions?.join(', ') || undefined
       );
 
       const plans: DailyMealPlan[] = [];

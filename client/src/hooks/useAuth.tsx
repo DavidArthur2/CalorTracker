@@ -11,6 +11,7 @@ import { useToast } from "./use-toast";
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   error: Error | null;
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user: user ?? null,
         isLoading,
+        isAuthenticated: !!user,
         error,
         loginMutation,
         logoutMutation,
@@ -144,5 +146,3 @@ export function useAuth() {
 export function isUnauthorizedError(error: Error): boolean {
   return /^401: .*Unauthorized/.test(error.message);
 }
-
-export { AuthProvider };
