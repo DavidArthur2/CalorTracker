@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Crown, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
+  : null;
 
 const mockUser = {
   id: 1,
@@ -146,7 +145,7 @@ export default function Subscription() {
           {/* Pricing Card */}
           <Card className="subscription-gradient text-white">
             <CardHeader>
-              <CardTitle className="text-center text-2xl">NutriTrack Pro</CardTitle>
+              <CardTitle className="text-center text-2xl">CalorTracker Pro</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
@@ -193,7 +192,12 @@ export default function Subscription() {
               <CardTitle>Payment Information</CardTitle>
             </CardHeader>
             <CardContent>
-              {createSubscriptionMutation.isPending ? (
+              {!stripePromise ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">Payment processing is not configured yet.</p>
+                  <p className="text-sm text-muted-foreground">Contact support to set up your subscription.</p>
+                </div>
+              ) : createSubscriptionMutation.isPending ? (
                 <div className="text-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
                   <p className="text-muted-foreground">Setting up your subscription...</p>
