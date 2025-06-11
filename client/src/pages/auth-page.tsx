@@ -75,18 +75,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-2xl animate-float">
-              <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">CalorTracker</h1>
-          <p className="mt-3 text-lg text-slate-300">AI-powered nutrition tracking</p>
+          <h1 className="text-3xl font-bold text-gray-900">CalorTracker</h1>
+          <p className="mt-2 text-gray-600">AI-powered nutrition tracking</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -96,10 +89,10 @@ export default function AuthPage() {
           </TabsList>
 
           <TabsContent value="login">
-            <Card className="bg-slate-800/50 backdrop-blur-lg border-white/10 shadow-xl">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white text-xl">Welcome back ✨</CardTitle>
-                <CardDescription className="text-slate-300">
+                <CardTitle>Welcome back</CardTitle>
+                <CardDescription>
                   Sign in to your account to continue tracking your nutrition
                 </CardDescription>
               </CardHeader>
@@ -137,7 +130,7 @@ export default function AuthPage() {
                 <CardFooter>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    className="w-full"
                     disabled={loginMutation.isPending}
                   >
                     {loginMutation.isPending ? (
@@ -155,10 +148,10 @@ export default function AuthPage() {
           </TabsContent>
 
           <TabsContent value="register">
-            <Card className="bg-slate-800/50 backdrop-blur-lg border-white/10 shadow-xl">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white text-xl">Create account ✨</CardTitle>
-                <CardDescription className="text-slate-300">
+                <CardTitle>Create account</CardTitle>
+                <CardDescription>
                   Join CalorTracker to start your nutrition journey
                 </CardDescription>
               </CardHeader>
