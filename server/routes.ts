@@ -18,16 +18,13 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for file uploads with local storage
+// Configure multer for file uploads
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: uploadsDir,
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, `food-${uniqueSuffix}${path.extname(file.originalname)}`);
-    }
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  dest: uploadsDir,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 1
+  },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -37,22 +34,19 @@ const upload = multer({
   }
 });
 
-// Stock meal icons data
-const STOCK_MEAL_ICONS = [
-  { id: 'salad', name: 'Salad', icon: '🥗', category: 'healthy' },
-  { id: 'burger', name: 'Burger', icon: '🍔', category: 'fast-food' },
-  { id: 'pizza', name: 'Pizza', icon: '🍕', category: 'fast-food' },
-  { id: 'sandwich', name: 'Sandwich', icon: '🥪', category: 'meal' },
-  { id: 'soup', name: 'Soup', icon: '🍲', category: 'healthy' },
-  { id: 'rice', name: 'Rice Bowl', icon: '🍚', category: 'meal' },
-  { id: 'pasta', name: 'Pasta', icon: '🍝', category: 'meal' },
-  { id: 'fish', name: 'Fish', icon: '🐟', category: 'protein' },
+// Demo stock meal icons
+const DEMO_MEAL_ICONS = [
+  { id: 'pizza', name: 'Pizza', icon: '🍕', category: 'main' },
+  { id: 'burger', name: 'Burger', icon: '🍔', category: 'main' },
+  { id: 'salad', name: 'Salad', icon: '🥗', category: 'main' },
   { id: 'chicken', name: 'Chicken', icon: '🍗', category: 'protein' },
-  { id: 'eggs', name: 'Eggs', icon: '🥚', category: 'protein' },
-  { id: 'fruit', name: 'Fruit', icon: '🍎', category: 'snack' },
-  { id: 'nuts', name: 'Nuts', icon: '🥜', category: 'snack' },
-  { id: 'yogurt', name: 'Yogurt', icon: '🥛', category: 'dairy' },
-  { id: 'smoothie', name: 'Smoothie', icon: '🥤', category: 'drink' },
+  { id: 'fish', name: 'Fish', icon: '🐟', category: 'protein' },
+  { id: 'apple', name: 'Apple', icon: '🍎', category: 'fruit' },
+  { id: 'banana', name: 'Banana', icon: '🍌', category: 'fruit' },
+  { id: 'bread', name: 'Bread', icon: '🍞', category: 'carb' },
+  { id: 'rice', name: 'Rice', icon: '🍚', category: 'carb' },
+  { id: 'milk', name: 'Milk', icon: '🥛', category: 'drink' },
+  { id: 'water', name: 'Water', icon: '💧', category: 'drink' },
   { id: 'coffee', name: 'Coffee', icon: '☕', category: 'drink' },
 ];
 
@@ -66,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded images
   app.use('/uploads', express.static(uploadsDir));
 
-  // Demo data endpoint for guest mode
+  // Demo data endpoints for guest mode
   app.get('/api/demo/food-entries', async (req, res) => {
     try {
       const demoEntries = [
@@ -80,6 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           carbs: "58.0",
           fat: "6.2",
           timestamp: new Date().toISOString(),
+          iconName: "apple"
         },
         {
           id: 2,
@@ -91,6 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           carbs: "15.0",
           fat: "28.0",
           timestamp: new Date().toISOString(),
+          iconName: "salad"
         }
       ];
       res.json(demoEntries);
@@ -100,313 +96,256 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User preferences routes
-  app.get('/api/user/preferences', requireAuth, async (req: any, res) => {
+  app.get('/api/demo/suggestions', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const preferences = await storage.getUserPreferences(userId);
-      res.json(preferences);
+      const demoSuggestions = [
+        {
+          id: 1,
+          suggestionType: "meal",
+          content: "Try adding more protein to your breakfast for better satiety",
+          timeOfDay: "morning",
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 2,
+          suggestionType: "exercise",
+          content: "Consider a 20-minute walk after lunch to aid digestion",
+          timeOfDay: "afternoon",
+          createdAt: new Date().toISOString()
+        }
+      ];
+      res.json(demoSuggestions);
     } catch (error) {
-      console.error("Error fetching preferences:", error);
-      res.status(500).json({ message: "Failed to fetch preferences" });
-    }
-  });
-
-  app.post('/api/user/preferences', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const validation = insertUserPreferencesSchema.parse({ ...req.body, userId });
-      
-      // Check if preferences exist
-      const existing = await storage.getUserPreferences(userId);
-      let preferences;
-      
-      if (existing) {
-        preferences = await storage.updateUserPreferences(userId, validation);
-      } else {
-        preferences = await storage.createUserPreferences(validation);
-      }
-      
-      res.json(preferences);
-    } catch (error) {
-      console.error("Error saving preferences:", error);
-      res.status(400).json({ message: "Invalid preferences data" });
+      console.error("Error fetching demo suggestions:", error);
+      res.status(500).json({ message: "Failed to fetch demo suggestions" });
     }
   });
 
   // Stock meal icons endpoint
-  app.get('/api/meal-icons', (req, res) => {
-    res.json(STOCK_MEAL_ICONS);
-  });
-
-  // Manual food entry with stock icons
-  app.post('/api/food-entries/manual', isAuthenticated, async (req: any, res) => {
+  app.get('/api/meal-icons', async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
-      const existingUser = await storage.getUserByUsername(userData.username) || await storage.getUserByEmail(userData.email);
-      
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
-      }
-      
-      const user = await storage.createUser(userData);
-      res.json({ user: { id: user.id, username: user.username, email: user.email, subscriptionStatus: user.subscriptionStatus, trialEndsAt: user.trialEndsAt } });
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      res.json(DEMO_MEAL_ICONS);
+    } catch (error) {
+      console.error("Error fetching meal icons:", error);
+      res.status(500).json({ message: "Failed to fetch meal icons" });
     }
   });
 
-  // Calorie goals
-  app.get("/api/calorie-goal/:userId/:date", async (req, res) => {
+  // User preferences routes
+  app.get('/api/user/preferences', requireAuth, async (req: any, res) => {
     try {
-      const { userId, date } = req.params;
-      const goal = await storage.getCalorieGoal(parseInt(userId), date);
+      const userId = req.user.id;
+      const preferences = await storage.getUserPreferences(userId);
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      res.status(500).json({ message: "Failed to fetch user preferences" });
+    }
+  });
+
+  app.post('/api/user/preferences', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const validatedData = insertUserPreferencesSchema.parse({ ...req.body, userId });
       
-      if (!goal) {
-        // Return default goal if none set
-        const defaultGoal = {
-          calories: 2000,
-          protein: 150,
-          carbs: 200,
-          fat: 70
-        };
-        return res.json(defaultGoal);
+      const existingPreferences = await storage.getUserPreferences(userId);
+      let preferences;
+      
+      if (existingPreferences) {
+        preferences = await storage.updateUserPreferences(userId, validatedData);
+      } else {
+        preferences = await storage.createUserPreferences(validatedData);
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ message: "Failed to update user preferences" });
+    }
+  });
+
+  // Calorie goals routes
+  app.get('/api/calorie-goals/:date', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { date } = req.params;
+      const goal = await storage.getCalorieGoal(userId, date);
+      res.json(goal);
+    } catch (error) {
+      console.error("Error fetching calorie goal:", error);
+      res.status(500).json({ message: "Failed to fetch calorie goal" });
+    }
+  });
+
+  app.post('/api/calorie-goals', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const validatedData = insertCalorieGoalSchema.parse({ ...req.body, userId });
+      
+      const existingGoal = await storage.getCalorieGoal(userId, validatedData.date);
+      let goal;
+      
+      if (existingGoal) {
+        goal = await storage.updateCalorieGoal(userId, validatedData.date, validatedData);
+      } else {
+        goal = await storage.setCalorieGoal(validatedData);
       }
       
       res.json(goal);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error setting calorie goal:", error);
+      res.status(500).json({ message: "Failed to set calorie goal" });
     }
   });
 
-  app.post("/api/calorie-goal", async (req, res) => {
+  // Food entries routes
+  app.get('/api/food-entries/:date', requireAuth, async (req: any, res) => {
     try {
-      const goalData = insertCalorieGoalSchema.parse(req.body);
-      const goal = await storage.setCalorieGoal(goalData);
-      res.json(goal);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Food entries
-  app.get("/api/food-entries/:userId/:date", async (req, res) => {
-    try {
-      const { userId, date } = req.params;
-      const entries = await storage.getFoodEntriesForDate(parseInt(userId), date);
+      const userId = req.user.id;
+      const { date } = req.params;
+      const entries = await storage.getFoodEntriesForDate(userId, date);
       res.json(entries);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error fetching food entries:", error);
+      res.status(500).json({ message: "Failed to fetch food entries" });
     }
   });
 
-  app.post("/api/analyze-food", upload.single('image'), async (req, res) => {
+  app.post('/api/food-entries', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const validatedData = insertFoodEntrySchema.parse({ ...req.body, userId });
+      const entry = await storage.createFoodEntry(validatedData);
+      res.json(entry);
+    } catch (error) {
+      console.error("Error creating food entry:", error);
+      res.status(500).json({ message: "Failed to create food entry" });
+    }
+  });
+
+  app.delete('/api/food-entries/:id', requireAuth, async (req: any, res) => {
+    try {
+      const entryId = parseInt(req.params.id);
+      const entry = await storage.getFoodEntry(entryId);
+      
+      if (!entry) {
+        return res.status(404).json({ message: "Food entry not found" });
+      }
+      
+      // Ensure user owns the entry
+      if (entry.userId !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      await storage.deleteFoodEntry(entryId);
+      res.sendStatus(204);
+    } catch (error) {
+      console.error("Error deleting food entry:", error);
+      res.status(500).json({ message: "Failed to delete food entry" });
+    }
+  });
+
+  // AI suggestions routes
+  app.get('/api/ai-suggestions/:date', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { date } = req.params;
+      const suggestions = await storage.getAiSuggestionsForDate(userId, date);
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error fetching AI suggestions:", error);
+      res.status(500).json({ message: "Failed to fetch AI suggestions" });
+    }
+  });
+
+  // Daily meal plans routes
+  app.get('/api/meal-plans/:date', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { date } = req.params;
+      const plans = await storage.getDailyMealPlans(userId, date);
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching meal plans:", error);
+      res.status(500).json({ message: "Failed to fetch meal plans" });
+    }
+  });
+
+  app.post('/api/meal-plans/generate', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { date } = req.body;
+      const plans = await storage.generateDailyMealPlans(userId, date);
+      res.json(plans);
+    } catch (error) {
+      console.error("Error generating meal plans:", error);
+      res.status(500).json({ message: "Failed to generate meal plans" });
+    }
+  });
+
+  app.patch('/api/meal-plans/:id/selection', requireAuth, async (req: any, res) => {
+    try {
+      const planId = parseInt(req.params.id);
+      const { isSelected } = req.body;
+      const plan = await storage.updateMealPlanSelection(planId, isSelected);
+      res.json(plan);
+    } catch (error) {
+      console.error("Error updating meal plan selection:", error);
+      res.status(500).json({ message: "Failed to update meal plan selection" });
+    }
+  });
+
+  // Food photo analysis route
+  app.post('/api/analyze-food', requireAuth, upload.single('image'), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
       }
 
-      const base64Image = req.file.buffer.toString('base64');
+      // Process and optimize the image
+      const processedImagePath = path.join(uploadsDir, `processed_${req.file.filename}.webp`);
+      await sharp(req.file.path)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toFile(processedImagePath);
+
+      // Read the processed image as base64
+      const imageBuffer = fs.readFileSync(processedImagePath);
+      const base64Image = imageBuffer.toString('base64');
+
+      // Analyze the food using OpenAI
       const analysis = await analyzeFood(base64Image);
+
+      // Create food entry
+      const userId = req.user.id;
+      const date = req.body.date || new Date().toISOString().split('T')[0];
       
-      res.json(analysis);
-    } catch (error: any) {
-      res.status(500).json({ message: "Failed to analyze food: " + error.message });
-    }
-  });
-
-  app.post("/api/food-entries", async (req, res) => {
-    try {
-      const entryData = insertFoodEntrySchema.parse(req.body);
-      const entry = await storage.createFoodEntry(entryData);
-      res.json(entry);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/food-entries/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteFoodEntry(id);
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // AI suggestions
-  app.get("/api/ai-suggestions/:userId/:date", async (req, res) => {
-    try {
-      const { userId, date } = req.params;
-      const suggestions = await storage.getAiSuggestionsForDate(parseInt(userId), date);
-      res.json(suggestions);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/meal-suggestion", async (req, res) => {
-    try {
-      const { userId, date, remainingCalories, currentTime } = req.body;
-      
-      const foodEntries = await storage.getFoodEntriesForDate(userId, date);
-      const suggestion = await generateMealSuggestion(remainingCalories, currentTime, foodEntries);
-      
-      const aiSuggestion = await storage.createAiSuggestion({
+      const foodEntry = await storage.createFoodEntry({
         userId,
         date,
-        suggestionType: "meal",
-        content: suggestion,
-        timeOfDay: currentTime,
-      });
-      
-      res.json(aiSuggestion);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/exercise-suggestion", async (req, res) => {
-    try {
-      const { userId, date, excessCalories } = req.body;
-      
-      const suggestion = await generateExerciseSuggestion(excessCalories);
-      
-      const aiSuggestion = await storage.createAiSuggestion({
-        userId,
-        date,
-        suggestionType: "exercise",
-        content: suggestion,
-        timeOfDay: new Date().toTimeString().slice(0, 5),
-      });
-      
-      res.json(aiSuggestion);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Stripe subscription routes
-  app.post('/api/create-subscription', async (req, res) => {
-    try {
-      const { userId } = req.body;
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      let customerId = user.stripeCustomerId;
-      
-      if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: user.email,
-          name: user.username,
-        });
-        customerId = customer.id;
-        await storage.updateUserStripeInfo(user.id, customerId);
-      }
-
-      const subscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{
-          price: process.env.STRIPE_PRICE_ID || "price_1234567890", // Replace with actual price ID
-        }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        expand: ['latest_invoice.payment_intent'],
+        mealType: req.body.mealType || 'snack',
+        description: analysis.description,
+        calories: analysis.calories,
+        protein: analysis.protein.toString(),
+        carbs: analysis.carbs.toString(),
+        fat: analysis.fat.toString(),
+        fiber: analysis.fiber?.toString(),
+        sugar: analysis.sugar?.toString(),
+        sodium: analysis.sodium?.toString(),
+        timestamp: new Date().toISOString(),
+        imageUrl: `/uploads/processed_${req.file.filename}.webp`
       });
 
-      await storage.updateUserStripeInfo(user.id, customerId, subscription.id);
+      // Clean up original uploaded file
+      fs.unlinkSync(req.file.path);
 
       res.json({
-        subscriptionId: subscription.id,
-        clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
+        analysis,
+        foodEntry
       });
-    } catch (error: any) {
-      res.status(500).json({ message: "Error creating subscription: " + error.message });
-    }
-  });
-
-  app.post("/api/create-payment-intent", async (req, res) => {
-    try {
-      const { amount } = req.body;
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: "usd",
-      });
-      res.json({ clientSecret: paymentIntent.client_secret });
-    } catch (error: any) {
-      res.status(500).json({ message: "Error creating payment intent: " + error.message });
-    }
-  });
-
-  // Daily meal plans
-  app.get("/api/daily-meal-plans/:userId/:date", async (req, res) => {
-    try {
-      const { userId, date } = req.params;
-      const plans = await storage.getDailyMealPlans(parseInt(userId), date);
-      res.json(plans);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/generate-daily-meal-plans", async (req, res) => {
-    try {
-      const { userId, date, calorieGoal, proteinGoal, carbGoal, fatGoal, dietaryRestrictions } = req.body;
-      
-      // Check if plans already exist for this date
-      const existingPlans = await storage.getDailyMealPlans(userId, date);
-      if (existingPlans.length > 0) {
-        return res.json(existingPlans);
-      }
-
-      // Generate new meal plans using AI
-      const aiMealPlans = await generateDailyMealPlans(
-        calorieGoal || 2000,
-        proteinGoal || 150,
-        carbGoal || 200,
-        fatGoal || 70,
-        dietaryRestrictions
-      );
-
-      // Save the generated plans to storage
-      const savedPlans = [];
-      for (const aiPlan of aiMealPlans) {
-        const planData = {
-          userId,
-          date,
-          mealType: aiPlan.mealType,
-          title: aiPlan.title,
-          description: aiPlan.description,
-          estimatedCalories: aiPlan.estimatedCalories,
-          estimatedProtein: aiPlan.estimatedProtein,
-          estimatedCarbs: aiPlan.estimatedCarbs,
-          estimatedFat: aiPlan.estimatedFat,
-          ingredients: aiPlan.ingredients,
-          instructions: aiPlan.instructions,
-          isSelected: false,
-        };
-        
-        const savedPlan = await storage.createDailyMealPlan(planData);
-        savedPlans.push(savedPlan);
-      }
-
-      res.json(savedPlans);
-    } catch (error: any) {
-      res.status(500).json({ message: "Failed to generate meal plans: " + error.message });
-    }
-  });
-
-  app.post("/api/select-meal-plan", async (req, res) => {
-    try {
-      const { planId, isSelected } = req.body;
-      const updatedPlan = await storage.updateMealPlanSelection(planId, isSelected);
-      res.json(updatedPlan);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error analyzing food:", error);
+      res.status(500).json({ message: "Failed to analyze food" });
     }
   });
 

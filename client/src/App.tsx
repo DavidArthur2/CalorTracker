@@ -4,9 +4,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import Navigation from "@/components/navigation";
 import Dashboard from "@/pages/dashboard";
 import FoodScanner from "@/pages/food-scanner";
@@ -14,37 +15,72 @@ import Subscription from "@/pages/subscription";
 import CalendarPlanning from "@/pages/calendar-planning";
 import Progress from "@/pages/progress";
 import Profile from "@/pages/profile";
+import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
-function Landing() {
+function GuestLanding() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">CalorTracker</CardTitle>
-          <CardDescription>
-            Track your nutrition with AI-powered food analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="font-semibold">Features:</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• AI-powered food photo analysis</li>
-              <li>• Manual food entry with icons</li>
-              <li>• Daily calorie and macro tracking</li>
-              <li>• Personalized meal suggestions</li>
-              <li>• Progress tracking and goals</li>
-            </ul>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            CalorTracker
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+            AI-powered nutrition tracking with demo mode
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={() => window.location.href = '/auth'} 
+              className="w-full sm:w-auto"
+            >
+              Get Started
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.location.href = '/demo'} 
+              className="w-full sm:w-auto"
+            >
+              Try Demo
+            </Button>
           </div>
-          <Button 
-            onClick={() => window.location.href = '/api/login'} 
-            className="w-full"
-          >
-            Login with Replit
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>📸 Photo Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Upload food photos for instant AI-powered nutritional analysis
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>📊 Track Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Monitor your daily calories, macros, and nutrition goals
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>🎯 Smart Goals</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Get personalized meal suggestions and AI-powered insights
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -62,8 +98,12 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/demo">
+        {() => <GuestLanding />}
+      </Route>
       {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <Route path="/" component={GuestLanding} />
       ) : (
         <>
           <Route path="/">
@@ -137,10 +177,12 @@ function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
