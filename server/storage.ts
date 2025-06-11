@@ -1,17 +1,24 @@
-import dotenv from 'dotenv';
-dotenv.config();
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { eq, and, desc, asc, sql } from 'drizzle-orm';
-import * as schema from "@shared/schema";
-import { 
-  users, userPreferences, calorieGoals, foodEntries, aiSuggestions, dailyMealPlans,
-  type User, type UpsertUser,
-  type UserPreferences, type InsertUserPreferences,
-  type CalorieGoal, type InsertCalorieGoal, 
-  type FoodEntry, type InsertFoodEntry, 
-  type AiSuggestion, type InsertAiSuggestion, 
-  type DailyMealPlan, type InsertDailyMealPlan 
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { eq, and } from "drizzle-orm";
+import {
+  users,
+  userPreferences,
+  calorieGoals,
+  foodEntries,
+  aiSuggestions,
+  dailyMealPlans,
+  type User,
+  type UserPreferences,
+  type CalorieGoal,
+  type FoodEntry,
+  type AiSuggestion,
+  type DailyMealPlan,
+  type InsertUserPreferences,
+  type InsertCalorieGoal,
+  type InsertFoodEntry,
+  type InsertAiSuggestion,
+  type InsertDailyMealPlan,
 } from "@shared/schema";
 import { generateDailyMealPlans } from "./openai";
 
@@ -55,10 +62,9 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-// Create the connection
 const connectionString = process.env.DATABASE_URL;
 const client = postgres(connectionString);
-export const db = drizzle(client, { schema });
+export const db = drizzle(client);
 
 /**
  * PostgreSQL implementation of the IStorage interface using Drizzle ORM.
@@ -89,61 +95,62 @@ export class PgStorage implements IStorage {
   }
 
   // User preferences
-  async getUserPreferences(userId: string): Promise<UserPreferences | undefined> {
+  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
     const [preferences] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
     return preferences;
   }
 
   async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
-    const [created] = await db.insert(userPreferences).values([preferences]).returning();
-    return created;
+    const [newPreferences] = await db.insert(userPreferences).values(preferences).returning();
+    return newPreferences;
   }
 
-  async updateUserPreferences(userId: string, preferencesUpdate: Partial<InsertUserPreferences>): Promise<UserPreferences> {
-    const [updated] = await db
+  async updateUserPreferences(userId: number, preferencesUpdate: Partial<InsertUserPreferences>): Promise<UserPreferences> {
+    const updateData = { ...preferencesUpdate, updatedAt: new Date() };
+    const [updatedPreferences] = await db
       .update(userPreferences)
-      .set({ ...preferencesUpdate, updatedAt: new Date() })
+      .set(updateData as any)
       .where(eq(userPreferences.userId, userId))
       .returning();
-    return updated;
+    return updatedPreferences;
   }
 
   // Calorie goals
-  async getCalorieGoal(userId: string, date: string): Promise<CalorieGoal | undefined> {
-    const [goal] = await db.select().from(calorieGoals)
+  async getCalorieGoal(userId: number, date: string): Promise<CalorieGoal | undefined> {
+    const [goal] = await db
+      .select()
+      .from(calorieGoals)
       .where(and(eq(calorieGoals.userId, userId), eq(calorieGoals.date, date)));
     return goal;
   }
 
   async setCalorieGoal(goal: InsertCalorieGoal): Promise<CalorieGoal> {
-    const [created] = await db.insert(calorieGoals).values(goal)
-      .onConflictDoUpdate({
-        target: [calorieGoals.userId, calorieGoals.date],
-        set: goal,
-      })
-      .returning();
-    return created;
+    const [newGoal] = await db.insert(calorieGoals).values(goal).returning();
+    return newGoal;
   }
 
-  async updateCalorieGoal(userId: string, date: string, goalUpdate: Partial<InsertCalorieGoal>): Promise<CalorieGoal> {
-    const [updated] = await db.update(calorieGoals)
+  async updateCalorieGoal(userId: number, date: string, goalUpdate: Partial<InsertCalorieGoal>): Promise<CalorieGoal> {
+    const [updatedGoal] = await db
+      .update(calorieGoals)
       .set(goalUpdate)
       .where(and(eq(calorieGoals.userId, userId), eq(calorieGoals.date, date)))
       .returning();
-    return updated;
+    return updatedGoal;
   }
 
   // Food entries
-  async getFoodEntriesForDate(userId: string, date: string): Promise<FoodEntry[]> {
-    const entries = await db.select().from(foodEntries)
+  async getFoodEntriesForDate(userId: number, date: string): Promise<FoodEntry[]> {
+    const entries = await db
+      .select()
+      .from(foodEntries)
       .where(and(eq(foodEntries.userId, userId), eq(foodEntries.date, date)))
-      .orderBy(desc(foodEntries.timestamp));
+      .orderBy(foodEntries.timestamp);
     return entries;
   }
 
   async createFoodEntry(entry: InsertFoodEntry): Promise<FoodEntry> {
-    const [created] = await db.insert(foodEntries).values([entry]).returning();
-    return created;
+    const [newEntry] = await db.insert(foodEntries).values(entry as any).returning();
+    return newEntry;
   }
 
   async getFoodEntry(id: number): Promise<FoodEntry | undefined> {
@@ -156,71 +163,83 @@ export class PgStorage implements IStorage {
   }
 
   // AI suggestions
-  async getAiSuggestionsForDate(userId: string, date: string): Promise<AiSuggestion[]> {
-    const suggestions = await db.select().from(aiSuggestions)
+  async getAiSuggestionsForDate(userId: number, date: string): Promise<AiSuggestion[]> {
+    const suggestions = await db
+      .select()
+      .from(aiSuggestions)
       .where(and(eq(aiSuggestions.userId, userId), eq(aiSuggestions.date, date)))
-      .orderBy(desc(aiSuggestions.createdAt));
+      .orderBy(aiSuggestions.createdAt);
     return suggestions;
   }
 
   async createAiSuggestion(suggestion: InsertAiSuggestion): Promise<AiSuggestion> {
-    const [created] = await db.insert(aiSuggestions).values([suggestion]).returning();
-    return created;
+    const [newSuggestion] = await db.insert(aiSuggestions).values(suggestion as any).returning();
+    return newSuggestion;
   }
 
   // Daily meal plans
-  async getDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]> {
-    const plans = await db.select().from(dailyMealPlans)
+  async getDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
+    const plans = await db
+      .select()
+      .from(dailyMealPlans)
       .where(and(eq(dailyMealPlans.userId, userId), eq(dailyMealPlans.date, date)))
-      .orderBy(asc(dailyMealPlans.createdAt));
+      .orderBy(dailyMealPlans.createdAt);
     return plans;
   }
 
   async createDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan> {
-    const [created] = await db.insert(dailyMealPlans).values([plan]).returning();
-    return created;
+    const [newPlan] = await db.insert(dailyMealPlans).values(plan as any).returning();
+    return newPlan;
   }
 
   async updateMealPlanSelection(planId: number, isSelected: boolean): Promise<DailyMealPlan> {
-    const [updated] = await db.update(dailyMealPlans)
+    const [updatedPlan] = await db
+      .update(dailyMealPlans)
       .set({ isSelected })
       .where(eq(dailyMealPlans.id, planId))
       .returning();
-    return updated;
+    return updatedPlan;
   }
 
-  async generateDailyMealPlans(userId: string, date: string): Promise<DailyMealPlan[]> {
-    // Get user preferences for context
-    const preferences = await this.getUserPreferences(userId);
-    const calorieGoal = await this.getCalorieGoal(userId, date);
-    const existingEntries = await this.getFoodEntriesForDate(userId, date);
+  async generateDailyMealPlans(userId: number, date: string): Promise<DailyMealPlan[]> {
+    try {
+      const userPrefs = await this.getUserPreferences(userId);
+      const calorieGoal = await this.getCalorieGoal(userId, date);
+      
+      const mealPlans = await generateDailyMealPlans(
+        calorieGoal?.calories || 2000,
+        calorieGoal?.protein || 150,
+        calorieGoal?.carbs || 250,
+        calorieGoal?.fat || 67,
+        userPrefs?.dietaryRestrictions || null
+      );
 
-    // Calculate remaining calories
-    const consumedCalories = existingEntries.reduce((sum, entry) => sum + entry.calories, 0);
-    const dailyCalorieTarget = calorieGoal?.calories || preferences?.dailyCalorieGoal || 2000;
-    const remainingCalories = Math.max(0, dailyCalorieTarget - consumedCalories);
+      const plans: DailyMealPlan[] = [];
+      for (const mealPlan of mealPlans) {
+        const planData = {
+          userId,
+          date,
+          mealType: mealPlan.mealType,
+          title: mealPlan.title,
+          description: mealPlan.description,
+          estimatedCalories: mealPlan.estimatedCalories,
+          estimatedProtein: mealPlan.estimatedProtein.toString(),
+          estimatedCarbs: mealPlan.estimatedCarbs.toString(),
+          estimatedFat: mealPlan.estimatedFat.toString(),
+          ingredients: mealPlan.ingredients,
+          instructions: mealPlan.instructions,
+          isSelected: false,
+        };
+        
+        const createdPlan = await this.createDailyMealPlan(planData);
+        plans.push(createdPlan);
+      }
 
-    // Generate meal plans using AI
-    const aiPlans = await generateDailyMealPlans(
-      remainingCalories,
-      preferences?.goal || "maintain_weight",
-      preferences?.dietaryRestrictions || [],
-      preferences?.allergies || []
-    );
-
-    // Save generated plans to database
-    const createdPlans: DailyMealPlan[] = [];
-    for (const plan of aiPlans) {
-      const created = await this.createDailyMealPlan({
-        userId,
-        date,
-        ...plan,
-        isSelected: false,
-      });
-      createdPlans.push(created);
+      return plans;
+    } catch (error) {
+      console.error("Error generating daily meal plans:", error);
+      return [];
     }
-
-    return createdPlans;
   }
 }
 

@@ -10,7 +10,7 @@ import { analyzeFood, generateMealSuggestion, generateExerciseSuggestion } from 
 import { insertFoodEntrySchema, insertCalorieGoalSchema, insertAiSuggestionSchema, insertDailyMealPlanSchema, insertUserPreferencesSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupSecurity } from "./security";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, requireAuth } from "./auth";
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -60,29 +60,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup security middleware
   setupSecurity(app);
   
-  // Setup Replit authentication
-  await setupAuth(app);
+  // Setup email/password authentication
+  setupAuth(app);
   
   // Serve uploaded images
   app.use('/uploads', express.static(uploadsDir));
 
-  // Auth routes for Replit authentication
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Demo data endpoint for guest mode
+  app.get('/api/demo/food-entries', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
+      const demoEntries = [
+        {
+          id: 1,
+          date: new Date().toISOString().split('T')[0],
+          mealType: "breakfast",
+          description: "Oatmeal with berries and honey",
+          calories: 320,
+          protein: "12.5",
+          carbs: "58.0",
+          fat: "6.2",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: 2,
+          date: new Date().toISOString().split('T')[0],
+          mealType: "lunch",
+          description: "Grilled chicken salad",
+          calories: 450,
+          protein: "35.0",
+          carbs: "15.0",
+          fat: "28.0",
+          timestamp: new Date().toISOString(),
+        }
+      ];
+      res.json(demoEntries);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      console.error("Error fetching demo entries:", error);
+      res.status(500).json({ message: "Failed to fetch demo entries" });
     }
   });
 
   // User preferences routes
-  app.get('/api/user/preferences', isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/preferences', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const preferences = await storage.getUserPreferences(userId);
