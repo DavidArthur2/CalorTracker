@@ -22,8 +22,8 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -31,7 +31,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
-  const { isLoading, user } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -105,186 +105,153 @@ export default function AuthPage() {
   }, [user, setLocation]);
 
   const onLogin = async (data: LoginFormData) => {
-    loginMutation.mutate(data, {
-      onSuccess: () => {
-        loginForm.reset();
-        // Redirect will happen automatically via useEffect
-      }
-    });
+    loginMutation.mutate(data);
   };
 
   const onRegister = async (data: RegisterFormData) => {
-    registerMutation.mutate(data, {
-      onSuccess: () => {
-        registerForm.reset();
-        // Redirect will happen automatically via useEffect
-      }
-    });
+    registerMutation.mutate(data);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">CalorTracker</h1>
-          <p className="mt-2 text-gray-600">AI-powered nutrition tracking</p>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="login">
-            <Card>
-              <CardHeader>
-                <CardTitle>Welcome back</CardTitle>
-                <CardDescription>
-                  Sign in to your account to continue tracking your nutrition
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={loginForm.handleSubmit(onLogin)}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      {...loginForm.register("email")}
-                    />
-                    {loginForm.formState.errors.email && (
-                      <p className="text-sm text-red-600">
-                        {loginForm.formState.errors.email.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="Enter your password"
-                      {...loginForm.register("password")}
-                    />
-                    {loginForm.formState.errors.password && (
-                      <p className="text-sm text-red-600">
-                        {loginForm.formState.errors.password.message}
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loginMutation.isPending}
-                  >
-                    {loginMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign in"
-                    )}
-                  </Button>
-                </CardFooter>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">CalorTracker</CardTitle>
+          <CardDescription>
+            Track your nutrition with AI-powered insights
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login" className="space-y-4">
+              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    {...loginForm.register("email")}
+                  />
+                  {loginForm.formState.errors.email && (
+                    <p className="text-sm text-red-500">
+                      {loginForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    {...loginForm.register("password")}
+                  />
+                  {loginForm.formState.errors.password && (
+                    <p className="text-sm text-red-500">
+                      {loginForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
               </form>
-            </Card>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="register">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create account</CardTitle>
-                <CardDescription>
-                  Join CalorTracker to start your nutrition journey
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={registerForm.handleSubmit(onRegister)}>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="register-firstName">First Name</Label>
-                      <Input
-                        id="register-firstName"
-                        placeholder="First name"
-                        {...registerForm.register("firstName")}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-lastName">Last Name</Label>
-                      <Input
-                        id="register-lastName"
-                        placeholder="Last name"
-                        {...registerForm.register("lastName")}
-                      />
-                    </div>
-                  </div>
+            <TabsContent value="register" className="space-y-4">
+              <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">Email</Label>
+                    <Label htmlFor="firstName">First Name</Label>
                     <Input
-                      id="register-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      {...registerForm.register("email")}
+                      id="firstName"
+                      placeholder="First name"
+                      {...registerForm.register("firstName")}
                     />
-                    {registerForm.formState.errors.email && (
-                      <p className="text-sm text-red-600">
-                        {registerForm.formState.errors.email.message}
+                    {registerForm.formState.errors.firstName && (
+                      <p className="text-sm text-red-500">
+                        {registerForm.formState.errors.firstName.message}
                       </p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">Password</Label>
+                    <Label htmlFor="lastName">Last Name</Label>
                     <Input
-                      id="register-password"
-                      type="password"
-                      placeholder="Create a password"
-                      {...registerForm.register("password")}
+                      id="lastName"
+                      placeholder="Last name"
+                      {...registerForm.register("lastName")}
                     />
-                    {registerForm.formState.errors.password && (
-                      <p className="text-sm text-red-600">
-                        {registerForm.formState.errors.password.message}
+                    {registerForm.formState.errors.lastName && (
+                      <p className="text-sm text-red-500">
+                        {registerForm.formState.errors.lastName.message}
                       </p>
                     )}
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={registerMutation.isPending}
-                  >
-                    {registerMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create account"
-                    )}
-                  </Button>
-                </CardFooter>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registerEmail">Email</Label>
+                  <Input
+                    id="registerEmail"
+                    type="email"
+                    placeholder="Enter your email"
+                    {...registerForm.register("email")}
+                  />
+                  {registerForm.formState.errors.email && (
+                    <p className="text-sm text-red-500">
+                      {registerForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registerPassword">Password</Label>
+                  <Input
+                    id="registerPassword"
+                    type="password"
+                    placeholder="Create a password"
+                    {...registerForm.register("password")}
+                  />
+                  {registerForm.formState.errors.password && (
+                    <p className="text-sm text-red-500">
+                      {registerForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={registerMutation.isPending}
+                >
+                  {registerMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
               </form>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            New to nutrition tracking?{" "}
-            <button
-              onClick={() => window.location.href = "/"}
-              className="text-blue-600 hover:text-blue-500 font-medium"
-            >
-              Try our demo
-            </button>
-          </p>
-        </div>
-      </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
