@@ -21,7 +21,7 @@ const manualEntrySchema = insertFoodEntrySchema.extend({
 });
 
 interface ManualFoodEntryProps {
-  userId: string;
+  userId: number;
   date: string;
   onSuccess: () => void;
 }
@@ -48,13 +48,11 @@ export default function ManualFoodEntry({ userId, date, onSuccess }: ManualFoodE
 
   const createFoodEntry = useMutation({
     mutationFn: async (data: z.infer<typeof manualEntrySchema>) => {
-      return await apiRequest("/api/food-entries", {
-        method: "POST",
-        body: JSON.stringify({
-          ...data,
-          imageUrl: data.iconName ? `/icons/${data.iconName}.svg` : null,
-        }),
+      const response = await apiRequest("POST", "/api/food-entries", {
+        ...data,
+        imageUrl: data.iconName ? `/icons/${data.iconName}.svg` : null,
       });
+      return response.json();
     },
     onSuccess: () => {
       toast({

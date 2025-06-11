@@ -332,7 +332,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fiber: analysis.fiber?.toString(),
         sugar: analysis.sugar?.toString(),
         sodium: analysis.sodium?.toString(),
-        timestamp: new Date().toISOString(),
         imageUrl: `/uploads/processed_${req.file.filename}.webp`
       });
 
