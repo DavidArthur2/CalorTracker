@@ -235,7 +235,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/food-entries', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const validatedData = insertFoodEntrySchema.parse({ ...req.body, userId });
+      const { iconName, ...entryData } = req.body;
+      
+      // If iconName is provided, set imageUrl to the emoji representation
+      let imageUrl = null;
+      if (iconName) {
+        const iconEmojis = {
+          'pizza': '🍕', 'burger': '🍔', 'salad': '🥗', 'chicken': '🍗', 'fish': '🐟',
+          'rice': '🍚', 'pasta': '🍝', 'sandwich': '🥪', 'apple': '🍎', 'banana': '🍌'
+        };
+        imageUrl = iconEmojis[iconName as keyof typeof iconEmojis] || '🍽️';
+      }
+      
+      const validatedData = insertFoodEntrySchema.parse({ 
+        ...entryData, 
+        userId,
+        imageUrl 
+      });
+      
       const entry = await storage.createFoodEntry(validatedData);
       res.json(entry);
     } catch (error) {
