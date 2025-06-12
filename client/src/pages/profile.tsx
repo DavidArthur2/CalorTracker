@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Settings, LogOut, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth.tsx";
 import Navigation from "@/components/navigation";
 import UserPreferencesForm from "@/components/user-preferences-form";
 
@@ -20,7 +20,8 @@ export default function Profile() {
   });
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    // For now, redirect to logout endpoint directly
+    window.location.href = "/api/logout";
   };
 
   const onPreferencesUpdate = () => {
@@ -98,10 +99,10 @@ export default function Profile() {
                       variant="destructive"
                       onClick={handleLogout}
                       className="flex items-center"
-                      disabled={logoutMutation.isPending}
+                      disabled={false}
                     >
                       <LogOut className="mr-2 h-4 w-4" />
-                      {logoutMutation.isPending ? "Signing out..." : "Sign Out"}
+                      Sign Out
                     </Button>
                   </div>
                 </CardContent>
@@ -110,7 +111,7 @@ export default function Profile() {
 
             <TabsContent value="preferences">
               <UserPreferencesForm 
-                initialData={userPreferences}
+                initialData={userPreferences as any}
                 onSuccess={onPreferencesUpdate}
                 isRegistration={false}
               />
