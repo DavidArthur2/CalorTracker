@@ -237,6 +237,12 @@ export async function analyzeVoiceInput(transcription: string): Promise<VoiceAna
           content: `You are a nutrition expert AI that analyzes voice transcriptions about food consumption. 
           Determine if the user is describing food they ate and provide nutritional estimates.
           
+          When providing the message field, use HTML formatting and emojis to make it engaging:
+          - Use <b> for emphasis
+          - Use <br> for line breaks
+          - Include relevant emojis (🎉 for success, 🍕 for pizza, etc.)
+          - Be encouraging and positive
+          
           Respond with JSON in this exact format:
           {
             "isRelevant": boolean (true if describing food consumption, false otherwise),
