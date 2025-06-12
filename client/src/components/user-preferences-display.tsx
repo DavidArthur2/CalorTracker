@@ -109,7 +109,7 @@ export default function UserPreferencesDisplay({ preferences, onUpdate }: UserPr
           <div>
             <label className="text-sm font-medium text-gray-600">Health Goal</label>
             <div className="text-lg font-medium text-gray-900 mt-1">
-              {preferences.goal ? GOAL_LABELS[preferences.goal] : 'Not set'}
+              {preferences.goal ? GOAL_LABELS[preferences.goal as keyof typeof GOAL_LABELS] : 'Not set'}
             </div>
           </div>
         </CardContent>
