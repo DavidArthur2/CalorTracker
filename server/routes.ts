@@ -470,6 +470,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User preferences routes
+  app.get("/api/user-preferences/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const preferences = await storage.getUserPreferences(Number(userId));
+      res.json(preferences || {});
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      res.status(500).json({ message: "Failed to fetch user preferences" });
+    }
+  });
+
+  app.post("/api/user-preferences", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const existingPreferences = await storage.getUserPreferences(userId);
+      
+      if (existingPreferences) {
+        const updated = await storage.updateUserPreferences(userId, req.body);
+        res.json(updated);
+      } else {
+        const created = await storage.createUserPreferences({ ...req.body, userId });
+        res.json(created);
+      }
+    } catch (error) {
+      console.error("Error saving user preferences:", error);
+      res.status(500).json({ message: "Failed to save user preferences" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
