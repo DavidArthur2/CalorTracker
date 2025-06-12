@@ -146,6 +146,21 @@ export async function generateExerciseSuggestion(excessCalories: number): Promis
   }
 }
 
+export interface VoiceAnalysis {
+  isRelevant: boolean;
+  description?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  mealType?: "breakfast" | "lunch" | "dinner" | "snack";
+  confidence: number;
+  message: string;
+}
+
 export interface MealPlan {
   mealType: "breakfast" | "lunch" | "dinner" | "snack";
   title: string;
@@ -209,5 +224,52 @@ export async function generateDailyMealPlans(
   } catch (error) {
     console.error("OpenAI meal plan generation error:", error);
     throw new Error("Failed to generate meal plans. Please try again.");
+  }
+}
+
+export async function analyzeVoiceInput(transcription: string): Promise<VoiceAnalysis> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a nutrition expert AI that analyzes voice transcriptions about food consumption. 
+          Determine if the user is describing food they ate and provide nutritional estimates.
+          
+          Respond with JSON in this exact format:
+          {
+            "isRelevant": boolean (true if describing food consumption, false otherwise),
+            "description": "string (clear description of the food if relevant)",
+            "calories": number (estimated calories if relevant),
+            "protein": number (grams if relevant),
+            "carbs": number (grams if relevant),
+            "fat": number (grams if relevant),
+            "fiber": number (grams, optional),
+            "sugar": number (grams, optional),
+            "sodium": number (mg, optional),
+            "mealType": "breakfast|lunch|dinner|snack" (best guess based on context),
+            "confidence": number (0-1, confidence in nutritional estimates),
+            "message": "string (helpful response to user)"
+          }
+          
+          If not food-related, set isRelevant to false and provide a helpful message asking them to describe food they ate.
+          If food-related but unclear, set low confidence and ask for clarification in the message.
+          Make reasonable estimates based on typical portion sizes when amounts aren't specified.`
+        },
+        {
+          role: "user",
+          content: transcription
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 500,
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{}');
+    return result as VoiceAnalysis;
+  } catch (error) {
+    console.error("OpenAI voice analysis error:", error);
+    throw new Error("Failed to analyze voice input. Please try again.");
   }
 }

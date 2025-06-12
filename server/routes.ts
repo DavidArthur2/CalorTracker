@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import sharp from "sharp";
 import { storage } from "./storage";
-import { analyzeFood, generateMealSuggestion, generateExerciseSuggestion } from "./openai";
+import { analyzeFood, generateMealSuggestion, generateExerciseSuggestion, analyzeVoiceInput } from "./openai";
 import { insertFoodEntrySchema, insertCalorieGoalSchema, insertAiSuggestionSchema, insertDailyMealPlanSchema, insertUserPreferencesSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupSecurity } from "./security";
@@ -390,6 +390,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error analyzing food:", error);
       res.status(500).json({ message: "Failed to analyze food" });
+    }
+  });
+
+  // Voice input analysis endpoint
+  app.post('/api/analyze-voice', requireAuth, async (req, res) => {
+    try {
+      const { transcription } = req.body;
+      
+      if (!transcription || typeof transcription !== 'string') {
+        return res.status(400).json({ message: "Transcription text is required" });
+      }
+
+      // Analyze the voice input using OpenAI
+      const analysis = await analyzeVoiceInput(transcription);
+
+      if (!analysis.isRelevant) {
+        return res.json({
+          isRelevant: false,
+          message: analysis.message
+        });
+      }
+
+      // If relevant and confident enough, create a food entry
+      if (analysis.confidence > 0.6) {
+        const userId = req.user.id;
+        const date = new Date().toISOString().split('T')[0];
+        
+        const foodEntry = await storage.createFoodEntry({
+          userId,
+          date,
+          mealType: analysis.mealType || 'snack',
+          description: analysis.description || 'Voice logged meal',
+          calories: analysis.calories || 0,
+          protein: analysis.protein?.toString() || '0',
+          carbs: analysis.carbs?.toString() || '0',
+          fat: analysis.fat?.toString() || '0',
+          fiber: analysis.fiber?.toString(),
+          sugar: analysis.sugar?.toString(),
+          sodium: analysis.sodium?.toString()
+        });
+
+        res.json({
+          isRelevant: true,
+          success: true,
+          analysis,
+          foodEntry,
+          message: analysis.message
+        });
+      } else {
+        // Low confidence - return analysis but don't save
+        res.json({
+          isRelevant: true,
+          success: false,
+          analysis,
+          message: analysis.message
+        });
+      }
+    } catch (error) {
+      console.error("Error analyzing voice input:", error);
+      res.status(500).json({ message: "Failed to analyze voice input" });
     }
   });
 

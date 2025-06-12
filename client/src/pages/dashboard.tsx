@@ -7,6 +7,7 @@ import MealsTimeline from "@/components/meals-timeline";
 import AiSuggestions from "@/components/ai-suggestions";
 import DailyMealPlans from "@/components/daily-meal-plans";
 import FoodScannerModal from "@/components/food-scanner-modal";
+import VoiceInput from "@/components/voice-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Camera, Plus, Crown, Bell, Lightbulb, Activity, Sparkles, Zap } from "lucide-react";
