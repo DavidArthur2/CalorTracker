@@ -49,26 +49,34 @@ export default function FoodScanner() {
       }
     },
     onSuccess: (data) => {
-      setAnalysisResult(data);
+      const analysis = data.analysis || data;
+      const foodEntry = data.foodEntry;
+      
+      setAnalysisResult(analysis);
       setFoodEntry({
-        description: data.description,
+        description: analysis.description,
         mealType: "",
-        calories: data.calories,
-        protein: data.protein,
-        carbs: data.carbs,
-        fat: data.fat,
+        calories: analysis.calories,
+        protein: analysis.protein,
+        carbs: analysis.carbs,
+        fat: analysis.fat,
       });
       
-      if (data.confidence < 0.7 && data.advice) {
+      // Update preview URL to show the processed image from server
+      if (foodEntry && foodEntry.imageUrl) {
+        setPreviewUrl(foodEntry.imageUrl);
+      }
+      
+      if (analysis.confidence < 0.7 && analysis.advice) {
         toast({
           title: "Analysis completed with low confidence",
-          description: data.advice,
+          description: analysis.advice,
           variant: "default",
         });
       } else {
         toast({
           title: "Food analyzed successfully!",
-          description: `Found: ${data.description}`,
+          description: `Found: ${analysis.description}`,
         });
       }
     },

@@ -177,7 +177,11 @@ export default function Profile() {
                 <div>
                   <Label>Member Since</Label>
                   <p className="text-foreground font-medium">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recently joined'}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) : 'Recently joined'}
                   </p>
                 </div>
               </div>
