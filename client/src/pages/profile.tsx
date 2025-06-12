@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Settings, Save, Edit, LogOut } from "lucide-react";
+import { User, Settings, Save, Edit, LogOut, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -116,9 +116,14 @@ export default function Profile() {
       <main className="main-content">
         <header className="bg-white dark:bg-card border-b border-border px-4 py-4 md:px-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">Profile Settings</h2>
-              <p className="text-sm text-muted-foreground">Manage your account and preferences</p>
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Zap className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">Profile Settings</h2>
+                <p className="text-sm text-muted-foreground">Manage your account and preferences</p>
+              </div>
             </div>
           </div>
         </header>
@@ -171,7 +176,9 @@ export default function Profile() {
                 </div>
                 <div>
                   <Label>Member Since</Label>
-                  <p className="text-foreground font-medium">{new Date(user.createdAt).toLocaleDateString()}</p>
+                  <p className="text-foreground font-medium">
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recently joined'}
+                  </p>
                 </div>
               </div>
             </CardContent>

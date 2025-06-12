@@ -9,7 +9,7 @@ import DailyMealPlans from "@/components/daily-meal-plans";
 import FoodScannerModal from "@/components/food-scanner-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Plus, Crown, Bell, Lightbulb, Activity, Sparkles } from "lucide-react";
+import { Camera, Plus, Crown, Bell, Lightbulb, Activity, Sparkles, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -128,7 +128,10 @@ export default function Dashboard() {
         <header className="bg-white dark:bg-card border-b border-border px-4 py-4 md:px-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center space-x-2 mb-1">
+              <div className="flex items-center space-x-3 mb-1">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-white" />
+                </div>
                 <h2 className="text-xl font-semibold text-foreground">
                   Welcome back{user?.firstName ? `, ${user.firstName}` : ''}!
                 </h2>
