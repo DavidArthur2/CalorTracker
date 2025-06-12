@@ -224,7 +224,7 @@ export default function Dashboard() {
           )}
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Food Scanner Card */}
             <Card data-tour="food-scanner" className="hover:shadow-lg transition-all duration-200 transform hover:scale-102">
@@ -243,6 +243,17 @@ export default function Dashboard() {
                     Start Scanning
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Voice Input Card */}
+            <Card>
+              <CardContent className="pt-6">
+                <VoiceInput onSuccess={() => {
+                  queryClient.invalidateQueries({ 
+                    queryKey: [`/api/food-entries/${user?.id}/${currentDate}`] 
+                  });
+                }} />
               </CardContent>
             </Card>
 

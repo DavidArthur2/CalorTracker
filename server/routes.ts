@@ -414,7 +414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If relevant and confident enough, create a food entry
       if (analysis.confidence > 0.6) {
-        const userId = req.user.id;
+        const userId = req.user!.id;
         const date = new Date().toISOString().split('T')[0];
         
         const foodEntry = await storage.createFoodEntry({
