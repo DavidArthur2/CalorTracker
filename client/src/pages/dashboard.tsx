@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import Navigation from "@/components/navigation";
 import DailyProgress from "@/components/daily-progress";
-import MealsTimeline from "@/components/meals-timeline";
+import NutritionTimeline from "@/components/nutrition-timeline";
 import AiSuggestions from "@/components/ai-suggestions";
 import DailyMealPlans from "@/components/daily-meal-plans";
 import FoodScannerModal from "@/components/food-scanner-modal";
@@ -182,7 +182,7 @@ export default function Dashboard() {
 
           {/* Daily Meal Plans */}
           <DailyMealPlans 
-            userId={user?.id}
+            userId={user?.id || 0}
             date={currentDate}
             calorieGoal={goalData.calories}
             proteinGoal={goalData.protein}
@@ -320,8 +320,14 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Today's Meals */}
-          <MealsTimeline entries={foodEntriesArray} userId={user?.id} date={currentDate} />
+          {/* Nutrition Timeline */}
+          <NutritionTimeline 
+            entries={foodEntriesArray} 
+            calorieGoal={goalData.calories}
+            proteinGoal={goalData.protein}
+            carbGoal={goalData.carbs}
+            fatGoal={goalData.fat}
+          />
 
           {/* Exercise Recommendations (shown when calories exceeded) */}
           {remainingCalories < -50 && (
