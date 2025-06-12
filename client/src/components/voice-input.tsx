@@ -55,8 +55,9 @@ export default function VoiceInput({ onSuccess }: VoiceInputProps) {
           queryKey: [`/api/food-entries/${user?.id}/${new Date().toISOString().split('T')[0]}`] 
         });
         toast({
-          title: "Meal logged successfully!",
+          title: "🎉 Meal logged successfully!",
           description: data.message,
+          variant: "success",
         });
         onSuccess?.();
       } else {

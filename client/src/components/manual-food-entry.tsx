@@ -105,8 +105,9 @@ export default function ManualFoodEntry({ userId, date, onSuccess }: ManualFoodE
           queryKey: [`/api/food-entries/${userId}/${date}`] 
         });
         toast({
-          title: "Meal logged successfully!",
+          title: "🎉 Meal logged successfully!",
           description: data.message,
+          variant: "success",
         });
         onSuccess();
       } else {
@@ -150,8 +151,9 @@ export default function ManualFoodEntry({ userId, date, onSuccess }: ManualFoodE
         queryKey: [`/api/food-entries/${userId}/${date}`] 
       });
       toast({
-        title: "Food entry added!",
+        title: "✅ Food entry added!",
         description: "Your meal has been logged successfully.",
+        variant: "success",
       });
       onSuccess();
     },

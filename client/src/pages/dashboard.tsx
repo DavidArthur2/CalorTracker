@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [selectedAction, setSelectedAction] = useState<'scan' | 'voice' | 'manual'>('scan');
   const { user } = useAuth();
   // const { showTour, completeTour, skipTour } = useOnboarding();
 
@@ -225,50 +226,99 @@ export default function Dashboard() {
           )}
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* Food Scanner Card */}
-            <Card data-tour="food-scanner" className="hover:shadow-lg transition-all duration-200 transform hover:scale-102">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 transition-colors hover:bg-primary/20">
-                    <Camera className="text-primary h-8 w-8" />
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="text-center text-xl font-bold text-gray-800 dark:text-gray-200">
+                Log Your Food
+              </CardTitle>
+              <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+                Choose your preferred method to track your meal
+              </p>
+            </CardHeader>
+            <CardContent>
+              {/* Action Selection Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                <Button
+                  variant={selectedAction === 'scan' ? 'default' : 'outline'}
+                  onClick={() => setSelectedAction('scan')}
+                  className={`flex-1 h-12 transition-all duration-200 ${
+                    selectedAction === 'scan'
+                      ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg'
+                      : 'border-blue-300 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/20'
+                  }`}
+                >
+                  <Camera className="mr-2 h-5 w-5" />
+                  Scan Food
+                </Button>
+                <Button
+                  variant={selectedAction === 'voice' ? 'default' : 'outline'}
+                  onClick={() => setSelectedAction('voice')}
+                  className={`flex-1 h-12 transition-all duration-200 ${
+                    selectedAction === 'voice'
+                      ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg'
+                      : 'border-green-300 text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20'
+                  }`}
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Voice Input
+                </Button>
+                <Button
+                  variant={selectedAction === 'manual' ? 'default' : 'outline'}
+                  onClick={() => setSelectedAction('manual')}
+                  className={`flex-1 h-12 transition-all duration-200 ${
+                    selectedAction === 'manual'
+                      ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-lg'
+                      : 'border-purple-300 text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/20'
+                  }`}
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Manual Entry
+                </Button>
+              </div>
+
+              {/* Selected Action Content */}
+              {selectedAction === 'scan' && (
+                <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <div className="bg-blue-100 dark:bg-blue-900 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <Camera className="text-blue-600 h-10 w-10" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">Scan Your Food</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Take a photo and let AI analyze the nutrition</p>
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 text-lg">Scan Your Food</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Take a photo and let AI analyze the nutrition content automatically</p>
                   <Button 
                     onClick={() => setScannerOpen(true)} 
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 h-12"
                   >
-                    <Camera className="mr-2 h-4 w-4" />
+                    <Camera className="mr-2 h-5 w-5" />
                     Start Scanning
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              )}
 
-            {/* Voice Input Card */}
-            <Card>
-              <CardContent className="pt-6">
-                <VoiceInput onSuccess={() => {
-                  queryClient.invalidateQueries({ 
-                    queryKey: [`/api/food-entries/${user?.id}/${currentDate}`] 
-                  });
-                }} />
-              </CardContent>
-            </Card>
+              {selectedAction === 'voice' && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-green-200 dark:border-green-700 p-4">
+                  <VoiceInput onSuccess={() => {
+                    queryClient.invalidateQueries({ 
+                      queryKey: [`/api/food-entries/${user?.id}/${currentDate}`] 
+                    });
+                  }} />
+                </div>
+              )}
 
-            {/* Manual Entry Card */}
-            <ManualFoodEntry 
-              userId={user?.id || 0} 
-              date={currentDate} 
-              onSuccess={() => {
-                queryClient.invalidateQueries({ 
-                  queryKey: [`/api/food-entries/${user?.id}/${currentDate}`] 
-                });
-              }} 
-            />
-          </div>
+              {selectedAction === 'manual' && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-purple-700">
+                  <ManualFoodEntry 
+                    userId={user?.id || 0} 
+                    date={currentDate} 
+                    onSuccess={() => {
+                      queryClient.invalidateQueries({ 
+                        queryKey: [`/api/food-entries/${user?.id}/${currentDate}`] 
+                      });
+                    }} 
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Today's Meals */}
           <MealsTimeline entries={foodEntriesArray} userId={user?.id} date={currentDate} />

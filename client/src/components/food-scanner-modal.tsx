@@ -85,8 +85,9 @@ export default function FoodScannerModal({ open, onOpenChange, userId, date }: F
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/food-entries/${userId}/${date}`] });
       toast({
-        title: "Food entry saved!",
+        title: "✅ Food entry saved!",
         description: "Added to your daily nutrition log.",
+        variant: "success",
       });
       handleClose();
     },
