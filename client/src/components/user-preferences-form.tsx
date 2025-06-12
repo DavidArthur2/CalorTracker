@@ -121,8 +121,26 @@ export default function UserPreferencesForm({ initialData, onSuccess, isRegistra
     });
   };
 
-  const nextStep = () => {
-    if (currentStep < totalSteps) {
+  const nextStep = async () => {
+    // Validate current step before proceeding
+    let isValid = false;
+    
+    switch (currentStep) {
+      case 1:
+        isValid = await form.trigger(['height', 'weight', 'age', 'gender']);
+        break;
+      case 2:
+        isValid = await form.trigger(['activityLevel']);
+        break;
+      case 3:
+        isValid = await form.trigger(['goal']);
+        break;
+      case 4:
+        isValid = true; // Dietary preferences and allergies are optional
+        break;
+    }
+    
+    if (isValid && currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -274,7 +292,10 @@ export default function UserPreferencesForm({ initialData, onSuccess, isRegistra
                               ? 'border-green-500 bg-green-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
-                          onClick={() => field.onChange(level.value)}
+                          onClick={() => {
+                            field.onChange(level.value);
+                            form.setValue('activityLevel', level.value as any);
+                          }}
                         >
                           <div className="flex items-center justify-between">
                             <div>
@@ -285,7 +306,11 @@ export default function UserPreferencesForm({ initialData, onSuccess, isRegistra
                               field.value === level.value 
                                 ? 'border-green-500 bg-green-500' 
                                 : 'border-gray-300'
-                            }`} />
+                            }`}>
+                              {field.value === level.value && (
+                                <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -322,12 +347,22 @@ export default function UserPreferencesForm({ initialData, onSuccess, isRegistra
                               ? 'border-purple-500 bg-purple-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
-                          onClick={() => field.onChange(goal.value)}
+                          onClick={() => {
+                            field.onChange(goal.value);
+                            form.setValue('goal', goal.value as any);
+                          }}
                         >
                           <div className="text-center">
                             <div className="text-3xl mb-2">{goal.icon}</div>
                             <h4 className="font-semibold text-gray-900">{goal.label}</h4>
                             <p className="text-sm text-gray-600">{goal.description}</p>
+                            {field.value === goal.value && (
+                              <div className="mt-2">
+                                <div className="w-6 h-6 bg-purple-500 text-white rounded-full mx-auto flex items-center justify-center text-sm">
+                                  ✓
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

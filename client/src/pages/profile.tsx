@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth.tsx";
 import Navigation from "@/components/navigation";
 import UserPreferencesForm from "@/components/user-preferences-form";
+import UserPreferencesDisplay from "@/components/user-preferences-display";
 
 export default function Profile() {
   const { toast } = useToast();
@@ -110,11 +111,18 @@ export default function Profile() {
             </TabsContent>
 
             <TabsContent value="preferences">
-              <UserPreferencesForm 
-                initialData={userPreferences as any}
-                onSuccess={onPreferencesUpdate}
-                isRegistration={false}
-              />
+              {userPreferences && Object.keys(userPreferences).length > 0 ? (
+                <UserPreferencesDisplay 
+                  preferences={userPreferences}
+                  onUpdate={onPreferencesUpdate}
+                />
+              ) : (
+                <UserPreferencesForm 
+                  initialData={userPreferences as any}
+                  onSuccess={onPreferencesUpdate}
+                  isRegistration={false}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
