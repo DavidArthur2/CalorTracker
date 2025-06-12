@@ -258,21 +258,15 @@ export default function Dashboard() {
             </Card>
 
             {/* Manual Entry Card */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="bg-secondary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                    <Plus className="text-secondary h-8 w-8" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">Manual Entry</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Add food manually from our database</p>
-                  <Button variant="secondary" className="w-full">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Search Foods
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <ManualFoodEntry 
+              userId={user?.id || 0} 
+              date={currentDate} 
+              onSuccess={() => {
+                queryClient.invalidateQueries({ 
+                  queryKey: [`/api/food-entries/${user?.id}/${currentDate}`] 
+                });
+              }} 
+            />
           </div>
 
           {/* Today's Meals */}
